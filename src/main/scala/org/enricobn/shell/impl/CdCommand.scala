@@ -12,16 +12,19 @@ class CdCommand extends VirtualCommand {
 
   @throws[VirtualIOException]
   override def run(shell: VirtualShell, terminal: Terminal, args: String*) {
-    val folder: String = args(0)
+    val folder: String =
+      if (args.isEmpty)
+        "/home/" + shell.vum.getCurrentUser
+      else
+        args(0)
 
-    var currentFolder: VirtualFolder = null
     try {
-      currentFolder = shell.getCurrentFolder.resolveFolder(folder)
+      val currentFolder = shell.getCurrentFolder.resolveFolder(folder)
+      shell.setCurrentFolder(currentFolder)
     }
     catch {
       case e: VirtualIOException =>
         throw new VirtualIOException("cd: " + e.getMessage, e)
     }
-    shell.setCurrentFolder(currentFolder)
   }
 }

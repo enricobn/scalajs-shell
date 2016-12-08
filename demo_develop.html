@@ -13,12 +13,23 @@
         <canvas id="screenCanvas" width="1024" height="600" style="border:1px solid #d3d3d3;">
             Your browser does not support the HTML5 canvas tag.</canvas>
 
+        <audio id="audio">
+            <source src="typewriter-key-1.wav" type="audio/wav">
+        </audio>
+
         <script type="text/javascript">
-            var screen = new TextScreenCanvas('screenCanvas');
-            var terminal = new Terminal(screen);
+            var screen = new CanvasTextScreen('screenCanvas');
+            var input = new CanvasInputHandler('screenCanvas');
+            var terminal = new Terminal(screen, input, 'typewriter-key-1.wav');
             var shell = new VirtualShell(terminal);
+
             shell.start();
+
 /*
+            var audio = document.getElementById("audio");
+            audio.play();
+            audio.play();
+
             for (var i=0; i < 100; i++) {
                 terminal.add('Hello world ' + i + '\n');
                 screen.update();
