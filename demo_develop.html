@@ -13,15 +13,34 @@
         <canvas id="screenCanvas" width="1024" height="600" style="border:1px solid #d3d3d3;">
             Your browser does not support the HTML5 canvas tag.</canvas>
 
-        <audio id="audio">
-            <source src="typewriter-key-1.wav" type="audio/wav">
-        </audio>
-
         <script type="text/javascript">
             var screen = new CanvasTextScreen('screenCanvas');
             var input = new CanvasInputHandler('screenCanvas');
             var terminal = new Terminal(screen, input, 'typewriter-key-1.wav');
-            var shell = new VirtualShell(terminal);
+
+            var rootPassword = 'root';
+            var vum = new VirtualUsersManagerImpl(rootPassword);
+
+            vum.addUser('guest', 'guest');
+
+            var fs = new InMemoryFS(vum);
+
+            var currentFolder = fs.root;
+
+            var bin = currentFolder.mkdir('bin');
+
+            var usr = currentFolder.mkdir('usr');
+            var usrBin = usr.mkdir('bin');
+            currentFolder = currentFolder.mkdir('home');
+            currentFolder = currentFolder.mkdir('guest');
+
+            var shell = new VirtualShell(terminal, vum, currentFolder);
+            shell.createCommandFile(bin, new LsCommand());
+            shell.createCommandFile(bin, new CdCommand());
+            shell.addToPath(bin);
+            shell.addToPath(usrBin);
+
+            vum.logUser('guest', 'guest');
 
             shell.start();
 

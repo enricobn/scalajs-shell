@@ -1,12 +1,8 @@
 package org.enricobn.shell.impl
 
-import java.util.UUID
-
 import org.enricobn.shell.VirtualCommand
 import org.enricobn.terminal.{StringPub, Terminal}
 import org.enricobn.vfs._
-import org.enricobn.vfs.impl.VirtualUsersManagerImpl
-import org.enricobn.vfs.inmemory.InMemoryFS
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -17,28 +13,9 @@ import scala.scalajs.js.annotation.{JSExport, JSExportAll}
   */
 @JSExport(name="VirtualShell")
 @JSExportAll
-class VirtualShell(terminal: Terminal) {
+class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var _currentFolder: VirtualFolder) {
   private val path = new ListBuffer[VirtualFolder]
-  val rootPassword = UUID.randomUUID().toString
-  val vum = new VirtualUsersManagerImpl(rootPassword)
-  val fs = new InMemoryFS(vum)
-
-  private var current: VirtualFolder = fs.root
-
-  val bin = current.mkdir("bin")
-  path += bin
-  val usr = current.mkdir("usr")
-  val usrBin = usr.mkdir("bin")
-  path += usrBin
-  //    virtualShell.addCommand(bin, new CatCommand)
-  createCommandFile(bin, new LsCommand)
-  //    virtualShell.addCommand(bin, new TouchCommand)
-  //    virtualShell.addCommand(bin, new MkdirCommand)
-  //    virtualShell.addCommand(bin, new PwdCommand)
-  createCommandFile(bin, new CdCommand)
-  current = current.mkdir("home")
-
-  var line = ""
+  private var line = ""
 
   @throws[VirtualIOException]
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand): VirtualFile = {
@@ -51,7 +28,7 @@ class VirtualShell(terminal: Terminal) {
     folder.createExecutableFile(command.getName, vfRun)
   }
 
-  def getCurrentFolder: VirtualFolder = current
+  def currentFolder = _currentFolder
 
   @throws[VirtualIOException]
   def run(command: String, args: String*) {
@@ -65,9 +42,9 @@ class VirtualShell(terminal: Terminal) {
       file = first.get
     }
     else {
-      file = current.findFileOrThrow(command)
+      file = currentFolder.findFileOrThrow(command)
     }
-    if (file.isExecutable) {
+    if (file.executable) {
       file.run(args: _*)
     }
     else {
@@ -77,12 +54,12 @@ class VirtualShell(terminal: Terminal) {
 //
 //  @throws[VirtualIOException]
 //  def setExecutable(name: String) {
-//    val file: VirtualFile = current.findFileOrThrow(name)
+//    val file: VirtualFile = currentFolder.findFileOrThrow(name)
 //    file.setExecutable(true)
 //  }
 
-  def setCurrentFolder(folder: VirtualFolder) {
-    this.current = folder
+  def currentFolder_=(folder: VirtualFolder) {
+    _currentFolder = folder
   }
 
   var inputHandler: InputHandler = null
@@ -93,11 +70,14 @@ class VirtualShell(terminal: Terminal) {
     terminal.onInput(inputHandler)
   }
 
-  private def prompt() {
-    terminal.add(current.getPath + "$ ")
-    terminal.flush()
+  def addToPath(folder: VirtualFolder) {
+    path += folder
   }
 
+  private def prompt() {
+    terminal.add(vum.currentUser + "@" + currentFolder.path + "$ ")
+    terminal.flush()
+  }
 
   private[VirtualShell] class InputHandler extends StringPub#Sub {
     override def notify(pub: mutable.Publisher[String], event: String) {
