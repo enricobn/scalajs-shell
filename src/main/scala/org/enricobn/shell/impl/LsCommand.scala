@@ -36,7 +36,7 @@ class LsCommand extends VirtualCommand {
   }
 
   private def print(terminal: Terminal, node: VirtualNode) {
-    terminal.add(node.name + "\t\t" + node.owner + "\t\t" + getAttributes(node) + "\n")
+    terminal.add(node.name + "\t\t" + node.owner + "\t\t" + getAttributes(node) + VirtualShell.CRLF)
     terminal.flush()
   }
 
