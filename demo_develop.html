@@ -37,6 +37,7 @@
             var shell = new VirtualShell(terminal, vum, currentFolder);
             shell.createCommandFile(bin, new LsCommand());
             shell.createCommandFile(bin, new CdCommand());
+            shell.createCommandFile(bin, new CatCommand());
             shell.addToPath(bin);
             shell.addToPath(usrBin);
 
