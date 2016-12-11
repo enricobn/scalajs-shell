@@ -33,6 +33,8 @@
             var usrBin = usr.mkdir('bin');
             currentFolder = currentFolder.mkdir('home');
             currentFolder = currentFolder.mkdir('guest');
+            var text = currentFolder.touch('text.txt');
+            text.content = 'Hello\nWorld';
 
             var shell = new VirtualShell(terminal, vum, currentFolder);
             shell.createCommandFile(bin, new LsCommand());
