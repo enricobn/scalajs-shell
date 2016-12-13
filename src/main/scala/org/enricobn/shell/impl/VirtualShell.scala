@@ -49,26 +49,15 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
       .flatMap(_.toList)
       .headOption
 
-    var file: VirtualFile = null
-    if (first.isDefined) {
-      file = first.get
-    }
-    else {
-      file = currentFolder.findFileOrThrow(command)
-    }
-    if (file.executable) {
-      file.run(args: _*)
-    }
-    else {
-      throw new VirtualIOException(command + ": Permission denied")
-    }
+    val file =
+      if (first.isDefined) {
+        first.get
+      } else {
+        currentFolder.findFileOrThrow(command)
+      }
+
+    file.run(args: _*)
   }
-//
-//  @throws[VirtualIOException]
-//  def setExecutable(name: String) {
-//    val file: VirtualFile = currentFolder.findFileOrThrow(name)
-//    file.setExecutable(true)
-//  }
 
   def currentFolder_=(folder: VirtualFolder) {
     _currentFolder = folder

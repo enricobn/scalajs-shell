@@ -34,7 +34,7 @@
             currentFolder = currentFolder.mkdir('home');
             currentFolder = currentFolder.mkdir('guest');
             var text = currentFolder.touch('text.txt');
-            text.content = 'Hello\nWorld';
+            text.chmod(666);
 
             var shell = new VirtualShell(terminal, vum, currentFolder);
             shell.createCommandFile(bin, new LsCommand());
@@ -44,6 +44,7 @@
             shell.addToPath(usrBin);
 
             vum.logUser('guest', 'guest');
+            text.content = 'Hello\nWorld';
 
             shell.start();
 

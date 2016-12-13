@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ListBuffer
 
 /**
   * Created by enrico on 12/10/16.

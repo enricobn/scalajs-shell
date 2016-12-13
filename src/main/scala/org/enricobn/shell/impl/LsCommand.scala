@@ -15,9 +15,9 @@ object LsCommand {
   }
 
   private def toString(permission: VirtualPermission): String =
-    (if (permission.execute) "x" else "-") +
     (if (permission.read) "r" else "-") +
-    (if (permission.write) "w" else "-")
+    (if (permission.write) "w" else "-") +
+    (if (permission.execute) "x" else "-")
 }
 
 @JSExport(name = "LsCommand")
