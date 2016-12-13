@@ -1,7 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.VirtualCommand
-import org.enricobn.terminal.Terminal
+import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.vfs.VirtualIOException
 
 import scala.scalajs.js.annotation.JSExport
@@ -14,7 +13,7 @@ class CdCommand extends VirtualCommand {
   override def getName: String = "cd"
 
   @throws[VirtualIOException]
-  override def run(shell: VirtualShell, terminal: Terminal, args: String*) {
+  override def run(shell: VirtualShell, in: ShellInput, out: ShellOutput, args: String*) {
     val folder: String =
       if (args.isEmpty)
         "/home/" + shell.vum.currentUser

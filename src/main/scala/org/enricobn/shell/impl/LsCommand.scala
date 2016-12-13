@@ -1,7 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.VirtualCommand
-import org.enricobn.terminal.Terminal
+import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.vfs._
 
 import scala.scalajs.js.annotation.JSExport
@@ -25,19 +24,19 @@ class LsCommand extends VirtualCommand {
   def getName: String = "ls"
 
   @throws[VirtualIOException]
-  def run(shell: VirtualShell, terminal: Terminal, args: String*) {
+  override def run(shell: VirtualShell, in: ShellInput, out: ShellOutput, args: String*) {
     val currentFolder: VirtualFolder = shell.currentFolder
-    currentFolder.folders.foreach(folder => print(terminal, folder))
-    currentFolder.files.foreach(file => print(terminal, file))
+    currentFolder.folders.foreach(folder => print(out, folder))
+    currentFolder.files.foreach(file => print(out, file))
   }
 
   private def getAttributes(node: VirtualNode): String = {
     LsCommand.toString(node.permissions)
   }
 
-  private def print(terminal: Terminal, node: VirtualNode) {
-    terminal.add(node.name + "\t\t" + node.owner + "\t\t" + getAttributes(node) + VirtualShell.CRLF)
-    terminal.flush()
+  private def print(out: ShellOutput, node: VirtualNode) {
+    out.write(node.name + "\t\t" + node.owner + "\t\t" + getAttributes(node) + VirtualShell.CRLF)
+    out.flush()
   }
 
 }

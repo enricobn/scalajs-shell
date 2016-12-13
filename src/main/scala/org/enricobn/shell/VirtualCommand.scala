@@ -11,5 +11,5 @@ trait VirtualCommand {
   def getName: String
 
   @throws[VirtualIOException]
-  def run(shell: VirtualShell, terminal: Terminal, args: String*)
+  def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)
 }

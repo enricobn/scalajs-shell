@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.VirtualCommand
+import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.terminal.{StringPub, Terminal}
 import org.enricobn.vfs._
 
@@ -34,7 +34,32 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
     val vfRun = new VirtualFileRun() {
       @scala.throws[VirtualIOException]
       override def run(args: String*): Unit = {
-        command.run(VirtualShell.this, terminal, args: _*)
+        val shellInput = new ShellInput {
+          override def subscribe(fun: Function[String, Unit]) {
+            terminal.onInput(new mutable.Subscriber[String, mutable.Publisher[String]] {
+              override def notify(pub: mutable.Publisher[String], event: String) {
+                fun(event)
+              }
+            })
+          }
+        }
+
+        val shellOutput = new ShellOutput {
+          override def write(s: String) {
+            terminal.add(s)
+          }
+
+          override def flush() {
+            terminal.flush()
+          }
+        }
+
+        terminal.removeOnInputs()
+
+        command.run(VirtualShell.this, shellInput, shellOutput, args: _*)
+
+        terminal.removeOnInputs()
+        terminal.onInput(inputHandler)
       }
     }
     folder.createExecutableFile(command.getName, vfRun)
@@ -158,15 +183,11 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
       history.add(line)
       val words = line.split(" ").toList
       try {
-        terminal.removeOnInput()
         run(words.head, words.drop(1).toArray: _*)
       } catch {
         case ioe: VirtualIOException =>
           terminal.add(ioe.getMessage + CRLF)
           terminal.flush()
-      } finally {
-        terminal.removeOnInput()
-        terminal.onInput(inputHandler)
       }
     }
   }

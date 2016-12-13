@@ -43,8 +43,9 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     text.content = "Hello\nWorld"
 
     (term.add _).expects(where {message: String => message.contains("/home/guest")})
-    (term.flush _).expects()
-    (term.onInput _).expects(*)
+    (term.flush _).expects().anyNumberOfTimes()
+    (term.onInput _).expects(*).anyNumberOfTimes()
+    (term.removeOnInputs _).expects().anyNumberOfTimes()
 
     virtualShell.start()
 
@@ -60,7 +61,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     (f.terminal.add _).expects(where {
       message: String => message.contains("text.txt") && message.contains("rw- rw- rw-")
     })
-    (f.terminal.flush _).expects()
+//    (f.terminal.flush _).expects()
 
     f.shell.run("ls")
   }
@@ -71,17 +72,17 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     (f.terminal.add _).expects(where {
       message: String => message.contains("bin") && message.contains("rwx rwx r-x")
     })
-    (f.terminal.flush _).expects()
+//    (f.terminal.flush _).expects()
 
     (f.terminal.add _).expects(where {
       message: String => message.contains("home") && message.contains("rwx rwx r-x")
     })
-    (f.terminal.flush _).expects()
+//    (f.terminal.flush _).expects()
 
     (f.terminal.add _).expects(where {
       message: String => message.contains("usr") && message.contains("rwx rwx r-x")
     })
-    (f.terminal.flush _).expects()
+//    (f.terminal.flush _).expects()
 
     f.shell.run("cd", "/")
     f.shell.run("ls")
