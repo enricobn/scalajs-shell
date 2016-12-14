@@ -61,7 +61,6 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     (f.terminal.add _).expects(where {
       message: String => message.contains("text.txt") && message.contains("rw- rw- rw-")
     })
-//    (f.terminal.flush _).expects()
 
     f.shell.run("ls")
   }
@@ -72,17 +71,14 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     (f.terminal.add _).expects(where {
       message: String => message.contains("bin") && message.contains("rwx rwx r-x")
     })
-//    (f.terminal.flush _).expects()
 
     (f.terminal.add _).expects(where {
       message: String => message.contains("home") && message.contains("rwx rwx r-x")
     })
-//    (f.terminal.flush _).expects()
 
     (f.terminal.add _).expects(where {
       message: String => message.contains("usr") && message.contains("rwx rwx r-x")
     })
-//    (f.terminal.flush _).expects()
 
     f.shell.run("cd", "/")
     f.shell.run("ls")

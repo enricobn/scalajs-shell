@@ -28,6 +28,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   private val history = new CommandHistory
   private var x = 0
   private var xPrompt = 0
+  private val commands = new mutable.HashMap[String, VirtualCommand]()
 
   @throws[VirtualIOException]
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand): VirtualFile = {
@@ -56,32 +57,37 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
 
         terminal.removeOnInputs()
 
-        command.run(VirtualShell.this, shellInput, shellOutput, args: _*)
-
-        terminal.removeOnInputs()
-        terminal.onInput(inputHandler)
+        try {
+          command.run(VirtualShell.this, shellInput, shellOutput, args: _*)
+        } finally {
+          terminal.removeOnInputs()
+          terminal.onInput(inputHandler)
+        }
       }
     }
-    folder.createExecutableFile(command.getName, vfRun)
+    val file = folder.createExecutableFile(command.getName, vfRun)
+    commands(file.path) = command
+    file
   }
 
   def currentFolder = _currentFolder
 
   @throws[VirtualIOException]
   def run(command: String, args: String*) {
+    val file = fileFromCommand(command)
+    if (file.isDefined)
+      file.get.run(args: _*)
+    else
+      throw new VirtualIOException(command + ": No such file")
+  }
+
+  private def fileFromCommand(command: String) : Option[VirtualFile] = {
     val first: Option[VirtualFile] = path
       .map(folder => folder.findFile(command))
       .flatMap(_.toList)
       .headOption
 
-    val file =
-      if (first.isDefined) {
-        first.get
-      } else {
-        currentFolder.findFileOrThrow(command)
-      }
-
-    file.run(args: _*)
+    first.orElse(currentFolder.findFile(command))
   }
 
   def currentFolder_=(folder: VirtualFolder) {
@@ -128,6 +134,9 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
         prompt()
         // Down
       } else if (event == TAB) {
+        if (line.nonEmpty) {
+          handleCompletion()
+        }
       } else if (event == BACKSPACE) {
         if (line.nonEmpty) {
           moveLeft(1)
@@ -158,6 +167,44 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
     }
   }
 
+  private def handleCompletion() : Unit = {
+    val words = line.split(" ").toList
+    val commandName: String = words.head
+    val file = fileFromCommand(commandName)
+
+    val completion: Seq[String] =
+      if (file.isDefined) {
+        def command = commands(file.get.path)
+        if (command != null) {
+          command.completion(currentFolder, words.tail.toArray: _*)
+        } else {
+          Seq[String]()
+        }
+      } else if (words.length == 1 && !line.endsWith(" ")) {
+        path
+          .flatMap(_.files)
+          .filter(_.getCurrentUserPermission.execute)
+          .filter(_.name.startsWith(commandName))
+          .map(_.name).toList
+      } else {
+        Seq[String]()
+      }
+
+    if (completion.nonEmpty) {
+      if (completion.length == 1) {
+        eraseToPrompt
+        line = completion.head + " "
+      } else {
+        terminal.add(CRLF)
+        completion.foreach(s => terminal.add(s + CRLF))
+        prompt()
+      }
+      terminal.add(line)
+      terminal.flush()
+      x = xPrompt + line.length
+    }
+  }
+
   private def eraseFromCursor() {
     terminal.add(ESC + "[K")
   }
@@ -169,8 +216,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   private def processHistory(command: String) {
     if (x != xPrompt) {
 //      terminal.add(ESC + "[" + (x - xPrompt) + "D")
-      moveLeft(x - xPrompt)
-      eraseFromCursor()
+      eraseToPrompt
     }
     terminal.add(command)
     terminal.flush()
@@ -178,12 +224,17 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
     line = command
   }
 
+  def eraseToPrompt: Unit = {
+    moveLeft(x - xPrompt)
+    eraseFromCursor()
+  }
+
   private def processLine(line: String) {
     if (line.nonEmpty) {
       history.add(line)
-      val words = line.split(" ").toList
+      val words = line.split(" ")
       try {
-        run(words.head, words.drop(1).toArray: _*)
+        run(words.head, words.tail.toArray: _*)
       } catch {
         case ioe: VirtualIOException =>
           terminal.add(ioe.getMessage + CRLF)

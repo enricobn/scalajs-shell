@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
-import org.enricobn.vfs.VirtualIOException
+import org.enricobn.vfs.{VirtualFolder, VirtualIOException}
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -28,5 +28,9 @@ class CdCommand extends VirtualCommand {
       case e: VirtualIOException =>
         throw new VirtualIOException("cd: " + e.getMessage, e)
     }
+  }
+
+  override def completion(currentFolder: VirtualFolder, args: String*): Seq[String] = {
+    Seq("Hello cd")
   }
 }
