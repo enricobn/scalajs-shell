@@ -1,9 +1,9 @@
 package org.enricobn.shell
 
+import org.enricobn.shell.impl.ParsedLine
 import org.enricobn.vfs.{VirtualFile, VirtualFolder}
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 /**
   * Created by enrico on 12/14/16.
@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 sealed trait CompletionResult
 case class NewLine(line: String) extends CompletionResult
 case class Proposals(proposals: Seq[String]) extends CompletionResult
-case class NoCompletion() extends CompletionResult
+case class NoProposals() extends CompletionResult
 
 trait Completions {
 
@@ -20,45 +20,50 @@ trait Completions {
 
 }
 
-class ShellCompletions(path: ShellPath, currentFolder: VirtualFolder) extends Completions {
+class ShellCompletions(path: ShellPath) extends Completions {
   private val commands = new mutable.HashMap[String, VirtualCommand]()
+
+  var currentFolder: VirtualFolder = null
 
   def addCommandFile(file: VirtualFile, command: VirtualCommand): Unit = {
     commands(file.path) = command
   }
 
   override def complete(line: String): CompletionResult = {
-    val words = line.split(" ").toList
-    val commandName: String = words.head
-    val file = path.find(commandName, currentFolder)
+    val parsedLine = new ParsedLine(line)
 
-    val completion: Seq[String] =
-      if (file.isDefined) {
-        def command = commands(file.get.path)
-        if (command != null) {
-          command.completion(currentFolder, words.tail.toArray: _*)
-        } else {
-          Seq[String]()
-        }
-      } else if (words.length == 1 && !line.endsWith(" ")) {
+    if (parsedLine.invalidCommand)
+      return new NoProposals
+
+    val proposals =
+      if (parsedLine.incompleteCommand) {
         path.path
           .flatMap(_.files)
           .filter(_.getCurrentUserPermission.execute)
-          .filter(_.name.startsWith(commandName))
+          .filter(_.name.startsWith(parsedLine.commandName))
           .map(_.name).toList
       } else {
-        Seq[String]()
+        val file = path.find(parsedLine.commandName, currentFolder)
+        if (file.isDefined) {
+          commands.get(file.get.path)
+            .fold(Seq[String]())(cmd => cmd.completion(currentFolder, parsedLine.args.toArray: _*))
+        } else {
+          Seq[String]()
+        }
       }
 
-    if (completion.nonEmpty) {
-      if (completion.length == 1) {
-        new NewLine(completion.head + " ")
-      } else {
-        new Proposals(completion)
-      }
+    if (proposals.isEmpty) {
+      new NoProposals
     } else {
-      new NoCompletion
+      if (proposals.length == 1) {
+        if (parsedLine.incompleteCommand)
+          new NewLine(proposals.head + " ")
+        else
+          new NewLine(parsedLine.reconstructLine(proposals.head))
+      } else {
+        new Proposals(proposals)
+      }
     }
-
   }
+
 }

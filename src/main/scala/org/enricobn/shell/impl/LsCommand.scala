@@ -40,6 +40,6 @@ class LsCommand extends VirtualCommand {
   }
 
   override def completion(currentFolder: VirtualFolder, args: String*): Seq[String] = {
-    Seq("hello ls")
+    Seq.empty
   }
 }

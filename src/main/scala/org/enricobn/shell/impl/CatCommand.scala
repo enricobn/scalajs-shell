@@ -3,6 +3,7 @@ package org.enricobn.shell.impl
 import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualIOException}
 
+import scala.collection.mutable.ArrayBuffer
 import scala.scalajs.js.annotation.JSExport
 
 /**
@@ -21,10 +22,20 @@ class CatCommand extends VirtualCommand {
     val file: VirtualFile = currentFolder.findFileOrThrow(args(0))
     out.write(file.content.toString)
     out.write(VirtualShell.CRLF)
-    out.flush
+    out.flush()
   }
 
   override def completion(currentFolder: VirtualFolder, args: String*): Seq[String] = {
-    Seq("hello cat")
+    val start =
+      if (args.isEmpty) {
+        ""
+      } else {
+        args.last
+      }
+
+      currentFolder.files
+        .map(_.name)
+        .filter(_.startsWith(start))
+        .toSeq
   }
 }

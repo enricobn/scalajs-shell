@@ -31,6 +31,17 @@ class CdCommand extends VirtualCommand {
   }
 
   override def completion(currentFolder: VirtualFolder, args: String*): Seq[String] = {
-    Seq("Hello cd")
+    val start =
+      if (args.isEmpty) {
+        ""
+      } else {
+        args.last
+      }
+
+    currentFolder.folders
+      .filter(_.getCurrentUserPermission.execute)
+      .map(_.name)
+      .filter(_.startsWith(start))
+      .toSeq
   }
 }
