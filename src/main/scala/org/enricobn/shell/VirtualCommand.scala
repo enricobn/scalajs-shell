@@ -12,5 +12,5 @@ trait VirtualCommand {
   @throws[VirtualIOException]
   def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)
 
-  def completion(currentFolder: VirtualFolder, args: String*) : Seq[String]
+  def completion(line: String, currentFolder: VirtualFolder): Seq[String]
 }

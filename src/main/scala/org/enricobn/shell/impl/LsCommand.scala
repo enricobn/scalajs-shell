@@ -39,7 +39,7 @@ class LsCommand extends VirtualCommand {
     out.flush()
   }
 
-  override def completion(currentFolder: VirtualFolder, args: String*): Seq[String] = {
+  override def completion(line: String, currentFolder: VirtualFolder): Seq[String] = {
     Seq.empty
   }
 }

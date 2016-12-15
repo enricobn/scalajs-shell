@@ -11,7 +11,9 @@ trait ShellPath {
 
   def find(command: String, currentFolder: VirtualFolder) : Option[VirtualFile] = {
     val first: Option[VirtualFile] = path
-      .map(folder => folder.findFile(command))
+      .map(folder => {
+        folder.findFile(command)
+      })
       .flatMap(_.toList)
       .headOption
 

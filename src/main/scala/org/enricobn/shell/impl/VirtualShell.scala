@@ -29,7 +29,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   private var xPrompt = 0
 //  private val commands = new mutable.HashMap[String, VirtualCommand]()
   private val completions = new ShellCompletions(path)
-  completions.currentFolder = _currentFolder
 
   @throws[VirtualIOException]
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand): VirtualFile = {
@@ -84,7 +83,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
 
   def currentFolder_=(folder: VirtualFolder) {
     _currentFolder = folder
-    completions.currentFolder = folder
   }
 
   var inputHandler: InputHandler = null
@@ -125,7 +123,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
         line = ""
         x = 0
         prompt()
-        // Down
       } else if (event == TAB) {
         if (line.nonEmpty) {
           handleCompletion()
@@ -161,7 +158,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   }
 
   private def handleCompletion() : Unit = {
-    completions.complete(line) match {
+    completions.complete(line, currentFolder) match {
       case NewLine(newLine) =>
         eraseToPrompt()
         line = newLine

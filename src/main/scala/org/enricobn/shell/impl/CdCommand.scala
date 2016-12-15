@@ -30,13 +30,9 @@ class CdCommand extends VirtualCommand {
     }
   }
 
-  override def completion(currentFolder: VirtualFolder, args: String*): Seq[String] = {
-    val start =
-      if (args.isEmpty) {
-        ""
-      } else {
-        args.last
-      }
+  override def completion(line: String, currentFolder: VirtualFolder): Seq[String] = {
+    val parsedLine = new ParsedLine(line)
+    val start = parsedLine.lastArgument.getOrElse("")
 
     currentFolder.folders
       .filter(_.getCurrentUserPermission.execute)
