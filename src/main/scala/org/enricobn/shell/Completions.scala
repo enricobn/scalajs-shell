@@ -15,26 +15,33 @@ trait Completions {
   def complete(line: String, currentFolder: VirtualFolder) : CompletionResult
 }
 
-case class PartialPath(folder: Option[VirtualFolder], remaining: Option[String]) {
+case class PartialPath(folder: VirtualFolder, prefix: String, remaining: Option[String]) {
   // TODO implement VirtualNode.toString with path (can be final ?)
-  override def toString: String = "(" + folder.map(_.path).getOrElse("None") + "," + remaining + ")"
+  override def toString: String = "(" + folder.path + "," + prefix + "," + remaining + ")"
 }
 
 object Completions {
-  def resolveFolder(currentFolder: VirtualFolder, prefix: String) : PartialPath = {
-    println(prefix)
+  def resolveFolder(currentFolder: VirtualFolder, prefix: String) : Option[PartialPath] = {
     if (prefix.startsWith("/")) {
       val lastSlash = prefix.lastIndexOf('/')
       if (lastSlash == 0) {
-        PartialPath(Some(currentFolder.root), Some(prefix.substring(lastSlash + 1)))
+        val remaining: String = prefix.substring(lastSlash + 1)
+        Some(PartialPath(currentFolder.root, "/", if (remaining.isEmpty) None else Some(remaining)))
       } else {
         try {
           // TODO currentPermission must be handled by resolveFolder
-          PartialPath(Some(currentFolder.resolveFolder(prefix.substring(0, lastSlash))),
-            if (prefix.length == lastSlash -1) None else Some(prefix.substring(lastSlash +1)))
+          val parent = prefix.substring(0, lastSlash)
+          val remaining: String = prefix.substring(lastSlash + 1)
+          Some(
+            PartialPath(
+              currentFolder.resolveFolder(parent),
+              parent + "/",
+              if (remaining.isEmpty) None else Some(remaining)
+            )
+          )
         } catch {
           case ioe: VirtualIOException =>
-            PartialPath(None, None)
+            None
         }
       }
     } else {
@@ -43,21 +50,27 @@ object Completions {
         try {
           val folder: Option[VirtualFolder] = currentFolder.findFolder(prefix, _.getCurrentUserPermission.execute)
           if (folder.isDefined) {
-            PartialPath(folder, None)
+            Some(PartialPath(folder.get, prefix, None))
           } else {
-            PartialPath(Some(currentFolder), Some(prefix))
+            Some(PartialPath(currentFolder, "", Some(prefix)))
           }
         } catch {
           case ioe: VirtualIOException =>
-            PartialPath(None, None)
+            None
         }
       } else {
         try {
-          PartialPath(Some(currentFolder.resolveFolder(prefix.substring(0, lastSlash))),
-            if (prefix.length == lastSlash -1) None else Some(prefix.substring(lastSlash +1)))
+          val parent: String = prefix.substring(0, lastSlash)
+          Some(
+            PartialPath(
+              currentFolder.resolveFolder(parent),
+              parent + "/",
+              if (prefix.length == lastSlash -1) None else Some(prefix.substring(lastSlash +1))
+            )
+          )
         } catch {
           case ioe: VirtualIOException =>
-            PartialPath(None, None)
+            None
         }
       }
     }

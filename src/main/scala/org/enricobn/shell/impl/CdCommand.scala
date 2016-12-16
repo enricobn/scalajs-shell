@@ -36,18 +36,17 @@ class CdCommand extends VirtualCommand {
 
     if (parsedLine.lastArgument.isDefined) {
       val partialPath = Completions.resolveFolder(currentFolder, parsedLine.lastArgument.get)
-      println(partialPath)
-      if (partialPath.folder.isDefined) {
-        if (partialPath.remaining.isDefined) {
-          partialPath.folder.get.folders
+      if (partialPath.isDefined) {
+        if (partialPath.get.remaining.isDefined) {
+          partialPath.get.folder.folders
             .filter(_.getCurrentUserPermission.execute)
-            .filter(_.name.startsWith(partialPath.remaining.get))
-            .map(_.path + "/") // TODO if currentFolder I want the name
+            .filter(_.name.startsWith(partialPath.get.remaining.get))
+            .map(partialPath.get.prefix + _.name + "/")
             .toSeq
         } else {
-          partialPath.folder.get.folders
+          partialPath.get.folder.folders
             .filter(_.getCurrentUserPermission.execute)
-            .map(_.path)
+            .map(partialPath.get.prefix + _.name + "/")
             .toSeq
         }
       } else {
@@ -56,7 +55,7 @@ class CdCommand extends VirtualCommand {
     } else {
       currentFolder.folders
         .filter(_.getCurrentUserPermission.execute)
-        .map(_.name)
+        .map(_.name + "/")
         .filter(_.startsWith(start))
         .toSeq
     }
