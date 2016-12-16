@@ -22,16 +22,14 @@ case class PartialPath(folder: VirtualFolder, prefix: String, remaining: Option[
 
 object Completions {
   def resolveFolder(currentFolder: VirtualFolder, prefix: String) : Option[PartialPath] = {
-    if (prefix.startsWith("/")) {
+    try {
       val lastSlash = prefix.lastIndexOf('/')
-      if (lastSlash == 0) {
-        val remaining: String = prefix.substring(lastSlash + 1)
-        Some(PartialPath(currentFolder.root, "/", if (remaining.isEmpty) None else Some(remaining)))
-      } else {
-        try {
-          // TODO currentPermission must be handled by resolveFolder
+      if (prefix.startsWith("/")) {
+        val remaining = prefix.substring(lastSlash + 1)
+        if (lastSlash == 0) {
+          Some(PartialPath(currentFolder.root, "/", if (remaining.isEmpty) None else Some(remaining)))
+        } else {
           val parent = prefix.substring(0, lastSlash)
-          val remaining: String = prefix.substring(lastSlash + 1)
           Some(
             PartialPath(
               currentFolder.resolveFolder(parent),
@@ -39,28 +37,17 @@ object Completions {
               if (remaining.isEmpty) None else Some(remaining)
             )
           )
-        } catch {
-          case ioe: VirtualIOException =>
-            None
         }
-      }
-    } else {
-      val lastSlash = prefix.lastIndexOf('/')
-      if (lastSlash == -1) {
-        try {
-          val folder: Option[VirtualFolder] = currentFolder.findFolder(prefix, _.getCurrentUserPermission.execute)
+      } else {
+        if (lastSlash == -1) {
+          val folder = currentFolder.findFolder(prefix, _.getCurrentUserPermission.execute)
           if (folder.isDefined) {
             Some(PartialPath(folder.get, prefix, None))
           } else {
             Some(PartialPath(currentFolder, "", Some(prefix)))
           }
-        } catch {
-          case ioe: VirtualIOException =>
-            None
-        }
-      } else {
-        try {
-          val parent: String = prefix.substring(0, lastSlash)
+        } else {
+          val parent = prefix.substring(0, lastSlash)
           Some(
             PartialPath(
               currentFolder.resolveFolder(parent),
@@ -68,11 +55,11 @@ object Completions {
               if (prefix.length == lastSlash -1) None else Some(prefix.substring(lastSlash +1))
             )
           )
-        } catch {
-          case ioe: VirtualIOException =>
-            None
         }
       }
+    } catch {
+      case ioe: VirtualIOException =>
+        None
     }
   }
 }

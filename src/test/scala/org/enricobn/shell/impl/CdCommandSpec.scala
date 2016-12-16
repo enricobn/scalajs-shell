@@ -76,4 +76,10 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     val result = f.command.completion("cd ../../../nonexistentpath", f.currentFolder)
     assert(result.isEmpty)
   }
+
+  "completion of 'cd guest'" should "return no completions" in {
+    val f = fixture
+    val result = f.command.completion("cd guest", f.currentFolder.parent)
+    assert(result.isEmpty)
+  }
 }
