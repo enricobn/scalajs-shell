@@ -1,6 +1,7 @@
 package org.enricobn.shell
 
-import org.enricobn.vfs.{VirtualFolder, VirtualIOException}
+import org.enricobn.vfs.{IOError, VirtualFolder}
+import org.enricobn.vfs.IOError._
 
 /**
   * Created by enrico on 12/14/16.
@@ -21,45 +22,44 @@ case class PartialPath(folder: VirtualFolder, prefix: String, remaining: Option[
 }
 
 object Completions {
-  def resolveFolder(currentFolder: VirtualFolder, prefix: String) : Option[PartialPath] = {
-    try {
-      val lastSlash = prefix.lastIndexOf('/')
-      if (prefix.startsWith("/")) {
-        val remaining = prefix.substring(lastSlash + 1)
-        if (lastSlash == 0) {
-          Some(PartialPath(currentFolder.root, "/", if (remaining.isEmpty) None else Some(remaining)))
-        } else {
-          val parent = prefix.substring(0, lastSlash)
-          Some(
-            PartialPath(
-              currentFolder.resolveFolder(parent),
+  def resolveFolder(currentFolder: VirtualFolder, prefix: String) : Either[IOError, PartialPath] = {
+    val lastSlash = prefix.lastIndexOf('/')
+    if (prefix.startsWith("/")) {
+      val remaining = prefix.substring(lastSlash + 1)
+      if (lastSlash == 0) {
+        Right(PartialPath(currentFolder.root, "/", if (remaining.isEmpty) None else Some(remaining)))
+      } else {
+        val parent = prefix.substring(0, lastSlash)
+        currentFolder.resolveFolder(parent) match {
+          case Left(error) => error.message.ioErrorE
+          case Right(Some(f)) =>
+            Right(PartialPath(
+              f,
               parent + "/",
               if (remaining.isEmpty) None else Some(remaining)
-            )
-          )
-        }
-      } else {
-        if (lastSlash == -1) {
-          val folder = currentFolder.findFolder(prefix, _.getCurrentUserPermission.execute)
-          if (folder.isDefined) {
-            Some(PartialPath(folder.get, prefix, None))
-          } else {
-            Some(PartialPath(currentFolder, "", Some(prefix)))
-          }
-        } else {
-          val parent = prefix.substring(0, lastSlash)
-          Some(
-            PartialPath(
-              currentFolder.resolveFolder(parent),
-              parent + "/",
-              if (prefix.length == lastSlash -1) None else Some(prefix.substring(lastSlash +1))
-            )
-          )
+            ))
+          case _ => s"$parent: no such file or directory.".ioErrorE
         }
       }
-    } catch {
-      case ioe: VirtualIOException =>
-        None
+    } else {
+      if (lastSlash == -1) {
+        currentFolder.findFolder(prefix, _.getCurrentUserPermission.execute) match {
+          case Left(error) => error.message.ioErrorE
+          case Right(Some(f)) => Right(PartialPath(f, prefix, None))
+          case _ => Right(PartialPath(currentFolder, "", Some(prefix)))
+        }
+      } else {
+        val parent = prefix.substring(0, lastSlash)
+        currentFolder.resolveFolder(parent) match {
+          case Left(error) => error.message.ioErrorE
+          case Right(Some(f)) => Right(PartialPath(
+            f,
+            parent + "/",
+            if (prefix.length == lastSlash - 1) None else Some(prefix.substring(lastSlash + 1))
+          ))
+          case _ => s"$parent: no such file or directory.".ioErrorE
+        }
+      }
     }
   }
 }

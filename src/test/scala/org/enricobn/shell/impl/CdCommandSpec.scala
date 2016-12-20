@@ -11,10 +11,14 @@ import org.scalatest.{FlatSpec, Matchers}
 class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   def fixture = {
     val _vum = stub[VirtualUsersManager]
+    (_vum.checkWriteAccess _).when(*).returns(true)
+    (_vum.checkReadAccess _).when(*).returns(true)
+    (_vum.checkExecuteAccess _).when(*).returns(true)
+
     val fs = new InMemoryFS(_vum)
-    val bin = fs.root.mkdir("bin")
-    val home = fs.root.mkdir("home")
-    val guest = home.mkdir("guest")
+    val bin = fs.root.mkdir("bin").right.get
+    val home = fs.root.mkdir("home").right.get
+    val guest = home.mkdir("guest").right.get
 
     new {
       val command = new CdCommand

@@ -12,11 +12,11 @@ trait ShellPath {
   def find(command: String, currentFolder: VirtualFolder) : Option[VirtualFile] = {
     val first: Option[VirtualFile] = path
       .map(folder => {
-        folder.findFile(command)
+        folder.findFile(command).right.get
       })
       .flatMap(_.toList)
       .headOption
 
-    first.orElse(currentFolder.findFile(command))
+    first.orElse(currentFolder.findFile(command).right.get)
   }
 }

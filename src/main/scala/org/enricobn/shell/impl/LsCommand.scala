@@ -23,11 +23,13 @@ object LsCommand {
 class LsCommand extends VirtualCommand {
   def getName: String = "ls"
 
-  @throws[VirtualIOException]
-  override def run(shell: VirtualShell, in: ShellInput, out: ShellOutput, args: String*) {
+  override def run(shell: VirtualShell, in: ShellInput, out: ShellOutput, args: String*) = {
     val currentFolder: VirtualFolder = shell.currentFolder
-    currentFolder.folders.foreach(folder => print(out, folder))
-    currentFolder.files.foreach(file => print(out, file))
+
+    Right(() => {
+      currentFolder.folders.right.get.foreach(folder => print(out, folder))
+      currentFolder.files.right.get.foreach(file => print(out, file))
+    })
   }
 
   private def getAttributes(node: VirtualNode): String = {

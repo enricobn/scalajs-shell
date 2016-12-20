@@ -36,7 +36,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     val bin = stub[VirtualFolder]
 
-    (bin.files _).when().returns(Set(cat, ls))
+    (bin.files _).when().returns(Right(Set(cat, ls)))
 
     f.path.add(bin)
 
@@ -55,7 +55,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     val bin = stub[VirtualFolder]
 
-    (bin.files _).when().returns(Set(ls))
+    (bin.files _).when().returns(Right(Set(ls)))
 
     f.path.add(bin)
 
@@ -74,7 +74,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     val bin = stub[VirtualFolder]
 
-    (bin.files _).when().returns(Set(cat, ls))
+    (bin.files _).when().returns(Right(Set(cat, ls)))
 
     f.path.add(bin)
 
@@ -98,9 +98,9 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     f.completions.addCommandFile(cat, catCommand)
 
     val bin = stub[VirtualFolder]
-    (bin.findFile(_: String)).when("cat").returns(Some(cat))
+    (bin.findFile(_: String)).when("cat").returns(Right(Some(cat)))
 
-    (bin.files _).when().returns(Set(cat))
+    (bin.files _).when().returns(Right(Set(cat)))
 
     f.path.add(bin)
 

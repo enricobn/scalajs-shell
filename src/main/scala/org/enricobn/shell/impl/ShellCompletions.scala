@@ -24,7 +24,7 @@ class ShellCompletions(path: ShellPath) extends Completions {
     val proposals =
       if (parsedLine.incompleteCommand) {
         path.path
-          .flatMap(_.files)
+          .flatMap(_.files.right.get)
           .filter(_.getCurrentUserPermission.execute)
           .filter(_.name.startsWith(parsedLine.commandName))
           .map(_.name).toList

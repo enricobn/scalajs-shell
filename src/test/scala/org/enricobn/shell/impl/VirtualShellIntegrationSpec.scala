@@ -23,14 +23,14 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     var currentFolder: VirtualFolder = fs.root
 
-    val bin = currentFolder.mkdir("bin")
+    val bin = currentFolder.mkdir("bin").right.get
 
-    val usr = currentFolder.mkdir("usr")
-    val usrBin = usr.mkdir("bin")
-    currentFolder = currentFolder.mkdir("home")
-    currentFolder = currentFolder.mkdir("guest")
-    val text = currentFolder.touch("text.txt")
-    text.chmod(666)
+    val usr = currentFolder.mkdir("usr").right.get
+    val usrBin = usr.mkdir("bin").right.get
+    currentFolder = currentFolder.mkdir("home").right.get
+    currentFolder = currentFolder.mkdir("guest").right.get
+    val text = currentFolder.touch("text.txt").right.get
+    text.chmod(666).right.get.apply()
 
     val virtualShell = new VirtualShell(term, vum, currentFolder)
     virtualShell.createCommandFile(bin, new LsCommand())
@@ -62,7 +62,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       message: String => message.contains("text.txt") && message.contains("rw- rw- rw-")
     })
 
-    f.shell.run("ls")
+    f.shell.run("ls").right.get.apply()
   }
 
   "cd" should "show bin, home and usr" in {
@@ -80,7 +80,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       message: String => message.contains("usr") && message.contains("rwx rwx r-x")
     })
 
-    f.shell.run("cd", "/")
-    f.shell.run("ls")
+    f.shell.run("cd", "/").right.get.apply()
+    f.shell.run("ls").right.get.apply()
   }
 }

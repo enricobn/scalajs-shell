@@ -20,10 +20,13 @@
 
             var rootPassword = 'root';
             var vum = new VirtualUsersManagerImpl(rootPassword);
+            var fs = new InMemoryFS(vum);
 
+            var shell = new TestShell(terminal, vum, fs);
+
+            /*
             vum.addUser('guest', 'guest');
 
-            var fs = new InMemoryFS(vum);
 
             var currentFolder = fs.root;
 
@@ -45,6 +48,7 @@
 
             vum.logUser('guest', 'guest');
             text.content = 'Hello\nWorld';
+            */
 
             shell.start();
 

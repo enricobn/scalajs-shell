@@ -7,6 +7,8 @@ import org.enricobn.vfs._
 import scala.collection.mutable
 import scala.scalajs.js.annotation.{JSExport, JSExportAll}
 
+import IOError._
+
 /**
   * Created by enrico on 12/4/16.
   */
@@ -30,11 +32,9 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
 //  private val commands = new mutable.HashMap[String, VirtualCommand]()
   private val completions = new ShellCompletions(path)
 
-  @throws[VirtualIOException]
-  def createCommandFile(folder: VirtualFolder, command: VirtualCommand): VirtualFile = {
+  def createCommandFile(folder: VirtualFolder, command: VirtualCommand): Either[IOError, VirtualFile] = {
     val vfRun = new VirtualFileRun() {
-      @scala.throws[VirtualIOException]
-      override def run(args: String*): Unit = {
+      override def run(args: String*) = {
         val shellInput = new ShellInput {
           override def subscribe(fun: Function[String, Unit]) {
             terminal.onInput(new mutable.Subscriber[String, mutable.Publisher[String]] {
@@ -65,20 +65,23 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
         }
       }
     }
-    val file = folder.createExecutableFile(command.getName, vfRun)
-    completions.addCommandFile(file, command)
-    file
+
+    folder.createExecutableFile(command.getName, vfRun) match {
+      case Left(error) => error.message.ioErrorE
+      case Right(ex) =>
+        completions.addCommandFile(ex, command)
+        Right(ex)
+    }
   }
 
   def currentFolder = _currentFolder
 
-  @throws[VirtualIOException]
-  def run(command: String, args: String*) {
+  def run(command: String, args: String*) = {
     val file = path.find(command, currentFolder)
     if (file.isDefined)
       file.get.run(args: _*)
     else
-      throw new VirtualIOException(command + ": No such file")
+      (command + ": No such file").ioErrorE
   }
 
   def currentFolder_=(folder: VirtualFolder) {
@@ -206,12 +209,12 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
     if (line.nonEmpty) {
       history.add(line)
       val words = line.split(" ")
-      try {
-        run(words.head, words.tail.toArray: _*)
-      } catch {
-        case ioe: VirtualIOException =>
-          terminal.add(ioe.getMessage + CRLF)
+      run(words.head, words.tail.toArray: _*) match {
+        case Left(error) => {
+          terminal.add(error.message + CRLF)
           terminal.flush()
+        }
+        case Right(eff) => eff.apply()
       }
     }
   }
