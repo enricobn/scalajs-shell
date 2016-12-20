@@ -25,7 +25,7 @@ class CatCommand extends VirtualCommand {
           file.content match {
             case Left(error) => error.message.ioErrorE
             case Right(c) =>
-              Right(() => {
+              Right({
                 out.write(c.toString)
                 out.write(VirtualShell.CRLF)
                 out.flush()

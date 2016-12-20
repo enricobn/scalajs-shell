@@ -24,7 +24,7 @@ class CdCommand extends VirtualCommand {
     shell.currentFolder.resolveFolder(folder) match {
       case Left(error) => error.message.ioErrorE
       case Right(fO) => fO match {
-        case Some(f) => Right(() => shell.currentFolder = f)
+        case Some(f) => Right(shell.currentFolder = f)
         case _ => s"cd: $folder: No such file or directory".ioErrorE
       }
     }

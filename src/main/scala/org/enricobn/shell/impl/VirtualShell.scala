@@ -77,6 +77,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   def currentFolder = _currentFolder
 
   def run(command: String, args: String*) = {
+    // TODO simplify
     val file = path.find(command, currentFolder)
     if (file.isDefined)
       file.get.run(args: _*)
@@ -214,7 +215,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
           terminal.add(error.message + CRLF)
           terminal.flush()
         }
-        case Right(eff) => eff.apply()
+        case _ =>
       }
     }
   }

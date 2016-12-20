@@ -26,7 +26,7 @@ class LsCommand extends VirtualCommand {
   override def run(shell: VirtualShell, in: ShellInput, out: ShellOutput, args: String*) = {
     val currentFolder: VirtualFolder = shell.currentFolder
 
-    Right(() => {
+    Right({
       currentFolder.folders.right.get.foreach(folder => print(out, folder))
       currentFolder.files.right.get.foreach(file => print(out, file))
     })

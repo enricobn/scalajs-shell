@@ -20,14 +20,13 @@ class TestShell(terminal: Terminal, vum: VirtualUsersManager, fs: VirtualFS) ext
     home <- currentFolder.mkdir("home").right
     homeGuest <- home.mkdir("guest").right
     text <- homeGuest.touch("text.txt").right
-    contentEff <- (text.content = "Hello\nWorld").right
-    chmodEff <- text.chmod(666).right
+    _ <- (text.content = "Hello\nWorld").right
+    _ <- text.chmod(666).right
     _ <- createCommandFile(bin, new LsCommand()).right
     _ <- createCommandFile(bin, new CdCommand()).right
     _ <- createCommandFile(bin, new CatCommand()).right
   } yield new {
     val path = List(bin, usrBin)
-    val effects = List(contentEff, chmodEff)
     val textFile = text
     val currentFolder = homeGuest
   }
@@ -38,7 +37,6 @@ class TestShell(terminal: Terminal, vum: VirtualUsersManager, fs: VirtualFS) ext
       terminal.flush()
     case Right(j) =>
       j.path.foreach(addToPath(_))
-      j.effects.foreach(_.apply())
       currentFolder = j.currentFolder
   }
 
