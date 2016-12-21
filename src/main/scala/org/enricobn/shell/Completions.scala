@@ -3,6 +3,7 @@ package org.enricobn.shell
 import org.enricobn.vfs.{IOError, VirtualFolder}
 import org.enricobn.vfs.IOError._
 
+import IOError._
 /**
   * Created by enrico on 12/14/16.
   */
@@ -16,50 +17,64 @@ trait Completions {
   def complete(line: String, currentFolder: VirtualFolder) : CompletionResult
 }
 
-case class PartialPath(folder: VirtualFolder, prefix: String, remaining: Option[String]) {
+sealed trait CompletionPath
+
+/**
+  * @param folder the resolved folder
+  * @param relativePath the path relative to the currentFolder of the resolveFolder method
+  * @param remaining the remaining part from the folder
+  */
+case class PartialPath(folder: VirtualFolder, relativePath: String, remaining: Option[String]) extends CompletionPath {
   // TODO implement VirtualNode.toString with path (can be final ?)
-  override def toString: String = "(" + folder.path + "," + prefix + "," + remaining + ")"
+  override def toString: String = "(" + folder.path + "," + relativePath + "," + remaining + ")"
 }
 
+/**
+  *
+  * @param folder the resolved folder
+  * @param relativePath the path relative to the currentFolder of the resolveFolder method
+  */
+case class CompletePath(folder: VirtualFolder, relativePath: String) extends CompletionPath
+
+case class UnknownPath() extends CompletionPath
+
 object Completions {
-  def resolveFolder(currentFolder: VirtualFolder, prefix: String) : Either[IOError, PartialPath] = {
+  def resolveFolder(currentFolder: VirtualFolder, prefix: String) : CompletionPath = {
     val lastSlash = prefix.lastIndexOf('/')
-    if (prefix.startsWith("/")) {
-      val remaining = prefix.substring(lastSlash + 1)
-      if (lastSlash == 0) {
-        Right(PartialPath(currentFolder.root, "/", if (remaining.isEmpty) None else Some(remaining)))
+
+    val tmpResult =
+      if (lastSlash < 0) {
+        PartialPath(currentFolder, "", Some(prefix))
       } else {
-        val parent = prefix.substring(0, lastSlash)
-        currentFolder.resolveFolder(parent) match {
-          case Left(error) => error.message.ioErrorE
-          case Right(Some(f)) =>
-            Right(PartialPath(
-              f,
-              parent + "/",
-              if (remaining.isEmpty) None else Some(remaining)
-            ))
-          case _ => s"$parent: no such file or directory.".ioErrorE
+        val remaining =
+          if (lastSlash == prefix.length -1) {
+            None
+          } else {
+            Some(prefix.substring(lastSlash + 1))
+          }
+
+        if (lastSlash == 0) {
+          PartialPath(currentFolder.root, "/", remaining)
+        } else {
+          val parent = prefix.substring(0, lastSlash)
+          currentFolder.resolveFolder(parent) match {
+            case Left(error) => new UnknownPath
+            case Right(Some(folder)) =>
+              PartialPath(folder, prefix.substring(0, lastSlash) + "/", remaining)
+            case _ => new UnknownPath
+          }
         }
       }
-    } else {
-      if (lastSlash == -1) {
-        currentFolder.findFolder(prefix, _.getCurrentUserPermission.execute) match {
-          case Left(error) => error.message.ioErrorE
-          case Right(Some(f)) => Right(PartialPath(f, prefix, None))
-          case _ => Right(PartialPath(currentFolder, "", Some(prefix)))
+
+    // I try to resolve the remaining part
+    tmpResult match {
+      case PartialPath(folder, relativePath, Some(remaining)) =>
+        folder.findFolder(remaining, _ => true) match {
+          case Left(error) => UnknownPath()
+          case Right(Some(f)) => CompletePath(f, remaining)
+          case _ => PartialPath(folder, relativePath, Some(remaining))
         }
-      } else {
-        val parent = prefix.substring(0, lastSlash)
-        currentFolder.resolveFolder(parent) match {
-          case Left(error) => error.message.ioErrorE
-          case Right(Some(f)) => Right(PartialPath(
-            f,
-            parent + "/",
-            if (prefix.length == lastSlash - 1) None else Some(prefix.substring(lastSlash + 1))
-          ))
-          case _ => s"$parent: no such file or directory.".ioErrorE
-        }
-      }
+      case x => x
     }
   }
 }

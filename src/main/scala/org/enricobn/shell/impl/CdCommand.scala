@@ -1,10 +1,9 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{Completions, ShellInput, ShellOutput, VirtualCommand}
-import org.enricobn.vfs.{VirtualFolder}
+import org.enricobn.shell._
+import org.enricobn.vfs.VirtualFolder
 
 import scala.scalajs.js.annotation.JSExport
-
 import org.enricobn.vfs.IOError._
 
 /**
@@ -36,8 +35,9 @@ class CdCommand extends VirtualCommand {
 
     if (parsedLine.lastArgument.isDefined) {
       Completions.resolveFolder(currentFolder, parsedLine.lastArgument.get) match {
-        case Left(error) => Seq.empty // TODO error
-        case Right(partialPath) => {
+        case UnknownPath() => Seq.empty
+        case CompletePath(folder, prefix) => Seq.empty
+        case partialPath: PartialPath =>
           partialPath.folder.folders match {
             case Left(error) => Seq.empty // TODO error
             case Right(f) =>
@@ -45,16 +45,15 @@ class CdCommand extends VirtualCommand {
                 f
                   .filter (_.getCurrentUserPermission.execute)
                   .filter (_.name.startsWith (partialPath.remaining.get) )
-                  .map (partialPath.prefix + _.name + "/")
+                  .map (partialPath.relativePath + _.name + "/")
                   .toSeq
               } else {
                 f
                   .filter (_.getCurrentUserPermission.execute)
-                  .map (partialPath.prefix + _.name + "/")
+                  .map (partialPath.relativePath + _.name + "/")
                   .toSeq
               }
           }
-        }
       }
     } else {
       currentFolder.folders match {

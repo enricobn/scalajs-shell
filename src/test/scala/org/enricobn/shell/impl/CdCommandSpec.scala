@@ -30,60 +30,72 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   "completion of 'cd '" should "return empty Seq" in {
     val f = fixture
     val result = f.command.completion("cd ", f.currentFolder)
-    assert(result.isEmpty)
+    assert(result.isEmpty, result)
   }
 
   "completion of 'cd /'" should "return the list of root folders" in {
     val f = fixture
     val result = f.command.completion("cd /", f.currentFolder)
-    assert(result == Seq("/bin/", "/home/"))
+    assert(result == Seq("/bin/", "/home/"), result)
   }
 
   "completion of 'cd /home/'" should "return /home/guest/" in {
     val f = fixture
     val result = f.command.completion("cd /home/", f.currentFolder)
-    assert(result == Seq("/home/guest/"))
+    assert(result == Seq("/home/guest/"), result)
   }
 
   "completion of 'cd /h'" should "return /home/" in {
     val f = fixture
     val result = f.command.completion("cd /h", f.currentFolder)
-    assert(result == Seq("/home/"))
+    assert(result == Seq("/home/"), result)
   }
 
   "completion of 'cd ../'" should "return ../guest/" in {
     val f = fixture
     val result = f.command.completion("cd ../", f.currentFolder)
-    assert(result == Seq("../guest/"))
+    assert(result == Seq("../guest/"), result)
   }
 
   "completion of 'cd ' in /home" should "return guest/" in {
     val f = fixture
     val result = f.command.completion("cd ", f.currentFolder.parent)
-    assert(result == Seq("guest/"))
+    assert(result == Seq("guest/"), result)
   }
 
   "completion of 'cd nonexistentpath'" should "return no completions" in {
     val f = fixture
     val result = f.command.completion("cd nonexistentpath", f.currentFolder)
-    assert(result.isEmpty)
+    assert(result.isEmpty, result)
   }
 
   "completion of 'cd ../nonexistentpath'" should "return no completions" in {
     val f = fixture
     val result = f.command.completion("cd ../nonexistentpath", f.currentFolder)
-    assert(result.isEmpty)
+    assert(result.isEmpty, result)
   }
 
   "completion of 'cd ../../../nonexistentpath'" should "return no completions" in {
     val f = fixture
     val result = f.command.completion("cd ../../../nonexistentpath", f.currentFolder)
-    assert(result.isEmpty)
+    assert(result.isEmpty, result)
   }
 
-  "completion of 'cd guest'" should "return no completions" in {
+  "completion of 'cd guest' from /home" should "return no completions" in {
     val f = fixture
     val result = f.command.completion("cd guest", f.currentFolder.parent)
-    assert(result.isEmpty)
+    assert(result.isEmpty, result)
+  }
+
+  "completion of 'cd /home/guest'" should "return no completions" in {
+    val f = fixture
+    val result = f.command.completion("cd /home/guest", f.currentFolder)
+    assert(result.isEmpty, result)
+  }
+
+  "completion of 'cd /home/guest/'" should "return no completions" in {
+    val f = fixture
+    val result = f.command.completion("cd /home/guest/", f.currentFolder)
+    assert(result.isEmpty, result)
   }
 }
