@@ -36,19 +36,18 @@ class CdCommand extends VirtualCommand {
     if (parsedLine.lastArgument.isDefined) {
       Completions.resolveFolder(currentFolder, parsedLine.lastArgument.get) match {
         case UnknownPath() => Seq.empty
-        case CompletePath(folder, prefix) => Seq.empty
         case partialPath: PartialPath =>
           partialPath.folder.folders match {
-            case Left(error) => Seq.empty // TODO error
-            case Right(f) =>
+            case Left(error) => Seq.empty
+            case Right(folders) =>
               if (partialPath.remaining.isDefined) {
-                f
+                folders
                   .filter (_.getCurrentUserPermission.execute)
                   .filter (_.name.startsWith (partialPath.remaining.get) )
                   .map (partialPath.relativePath + _.name + "/")
                   .toSeq
               } else {
-                f
+                folders
                   .filter (_.getCurrentUserPermission.execute)
                   .map (partialPath.relativePath + _.name + "/")
                   .toSeq
@@ -57,7 +56,7 @@ class CdCommand extends VirtualCommand {
       }
     } else {
       currentFolder.folders match {
-        case Left(error) => Seq.empty // TODO error
+        case Left(error) => Seq.empty
         case Right(fs) =>
           fs
             .filter(_.getCurrentUserPermission.execute)

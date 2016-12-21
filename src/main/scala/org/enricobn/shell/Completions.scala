@@ -29,12 +29,12 @@ case class PartialPath(folder: VirtualFolder, relativePath: String, remaining: O
   override def toString: String = "(" + folder.path + "," + relativePath + "," + remaining + ")"
 }
 
-/**
-  *
-  * @param folder the resolved folder
-  * @param relativePath the path relative to the currentFolder of the resolveFolder method
-  */
-case class CompletePath(folder: VirtualFolder, relativePath: String) extends CompletionPath
+///**
+//  *
+//  * @param folder the resolved folder
+//  * @param relativePath the path relative to the currentFolder of the resolveFolder method
+//  */
+//case class CompletePath(folder: VirtualFolder, relativePath: String) extends CompletionPath
 
 case class UnknownPath() extends CompletionPath
 
@@ -71,7 +71,7 @@ object Completions {
       case PartialPath(folder, relativePath, Some(remaining)) =>
         folder.findFolder(remaining, _ => true) match {
           case Left(error) => UnknownPath()
-          case Right(Some(f)) => CompletePath(f, remaining)
+          case Right(Some(f)) => PartialPath(f, remaining, None)
           case _ => PartialPath(folder, relativePath, Some(remaining))
         }
       case x => x
