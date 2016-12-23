@@ -29,6 +29,8 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   private val history = new CommandHistory
   private var x = 0
   private var xPrompt = 0
+  private var inputHandler: InputHandler = null
+
 //  private val commands = new mutable.HashMap[String, VirtualCommand]()
   private val completions = new ShellCompletions(path)
 
@@ -57,12 +59,12 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
 
         terminal.removeOnInputs()
 
-        try {
-          command.run(VirtualShell.this, shellInput, shellOutput, args: _*)
-        } finally {
-          terminal.removeOnInputs()
-          terminal.onInput(inputHandler)
-        }
+        val result = command.run(VirtualShell.this, shellInput, shellOutput, args: _*)
+
+        terminal.removeOnInputs()
+        terminal.onInput(inputHandler)
+
+        result
       }
     }
 
@@ -88,8 +90,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   def currentFolder_=(folder: VirtualFolder) {
     _currentFolder = folder
   }
-
-  var inputHandler: InputHandler = null
 
   def start() {
     prompt()
