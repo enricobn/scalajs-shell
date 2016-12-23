@@ -1,11 +1,10 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
-import org.enricobn.vfs.{VirtualFile, VirtualFolder}
+import org.enricobn.shell.VirtualCommand
+import org.enricobn.vfs.IOError._
+import org.enricobn.vfs.{VFSInput, VFSOutput, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
-
-import org.enricobn.vfs.IOError._
 
 /**
   * Created by enrico on 12/5/16.
@@ -14,7 +13,7 @@ import org.enricobn.vfs.IOError._
 class CatCommand extends VirtualCommand {
   override def getName: String = "cat"
 
-  override def run(shell: VirtualShell, in: ShellInput, out: ShellOutput, args: String*)  = {
+  override def run(shell: VirtualShell, in: VFSInput, out: VFSOutput, args: String*)  = {
     if (args.isEmpty) {
       "cat: illegal argument".ioErrorE
     } else {

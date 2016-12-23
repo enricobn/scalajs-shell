@@ -36,35 +36,8 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
 
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand): Either[IOError, VirtualFile] = {
     val vfRun = new VirtualFileRun() {
-      override def run(args: String*) = {
-        val shellInput = new ShellInput {
-          override def subscribe(fun: Function[String, Unit]) {
-            terminal.onInput(new mutable.Subscriber[String, mutable.Publisher[String]] {
-              override def notify(pub: mutable.Publisher[String], event: String) {
-                fun(event)
-              }
-            })
-          }
-        }
-
-        val shellOutput = new ShellOutput {
-          override def write(s: String) {
-            terminal.add(s)
-          }
-
-          override def flush() {
-            terminal.flush()
-          }
-        }
-
-        terminal.removeOnInputs()
-
-        val result = command.run(VirtualShell.this, shellInput, shellOutput, args: _*)
-
-        terminal.removeOnInputs()
-        terminal.onInput(inputHandler)
-
-        result
+      override def run(input: VFSInput, output: VFSOutput, args: String*) = {
+        command.run(VirtualShell.this, input, output, args: _*)
       }
     }
 
@@ -81,9 +54,36 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   def run(command: String, args: String*) = {
     // TODO simplify
     val file = path.find(command, currentFolder)
-    if (file.isDefined)
-      file.get.run(args: _*)
-    else
+    if (file.isDefined) {
+      val shellInput = new VFSInput {
+        override def subscribe(fun: Function[String, Unit]) {
+          terminal.onInput(new mutable.Subscriber[String, mutable.Publisher[String]] {
+            override def notify(pub: mutable.Publisher[String], event: String) {
+              fun(event)
+            }
+          })
+        }
+      }
+
+      val shellOutput = new VFSOutput {
+        override def write(s: String) {
+          terminal.add(s)
+        }
+
+        override def flush() {
+          terminal.flush()
+        }
+      }
+
+      terminal.removeOnInputs()
+
+      val result = file.get.run(shellInput, shellOutput, args: _*)
+
+      terminal.removeOnInputs()
+      terminal.onInput(inputHandler)
+
+      result
+    } else
       (command + ": No such file").ioErrorE
   }
 

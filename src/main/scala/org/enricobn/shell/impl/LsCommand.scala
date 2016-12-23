@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
+import org.enricobn.shell.VirtualCommand
 import org.enricobn.vfs._
 
 import scala.scalajs.js.annotation.JSExport
@@ -23,7 +23,7 @@ object LsCommand {
 class LsCommand extends VirtualCommand {
   def getName: String = "ls"
 
-  override def run(shell: VirtualShell, in: ShellInput, out: ShellOutput, args: String*) = {
+  override def run(shell: VirtualShell, in: VFSInput, out: VFSOutput, args: String*) = {
     val currentFolder: VirtualFolder = shell.currentFolder
 
     Right({
@@ -36,7 +36,7 @@ class LsCommand extends VirtualCommand {
     LsCommand.toString(node.permissions)
   }
 
-  private def print(out: ShellOutput, node: VirtualNode) {
+  private def print(out: VFSOutput, node: VirtualNode) {
     out.write(node.name + "\t\t" + node.owner + "\t\t" + getAttributes(node) + VirtualShell.CRLF)
     out.flush()
   }
