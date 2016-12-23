@@ -8,6 +8,8 @@ class ParsedLine(line: String) {
 
   def incompleteCommand = words.length == 1 && !line.endsWith(" ")
 
+  def incompleteArgument = words.length > 1 && !line.endsWith(" ")
+
   def commandName = words.head
 
   def args = words.tail
@@ -20,9 +22,13 @@ class ParsedLine(line: String) {
     if (args.length <= 1)
       List.empty
     else
-      args.drop(args.length -1)
+      args.take(args.length -1)
 
   def reconstructLine(lastArgument: String) =
-    commandName + " " + argsButLast.fold("")(_ + _ + " ") + lastArgument
+    if (incompleteArgument) {
+      commandName + " " + argsButLast.fold("")(_ + _ + " ") + lastArgument
+    } else {
+      commandName + " " + args.fold("")(_ + _ + " ") + lastArgument
+    }
 
 }

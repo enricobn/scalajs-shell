@@ -1,8 +1,7 @@
 package org.enricobn.shell
 
-import org.enricobn.vfs.{IOError, VirtualFolder}
+import org.enricobn.vfs.{IOError, VirtualFile, VirtualFolder}
 import org.enricobn.vfs.IOError._
-
 import IOError._
 /**
   * Created by enrico on 12/14/16.
@@ -71,10 +70,22 @@ object Completions {
       case PartialPath(folder, relativePath, Some(remaining)) =>
         folder.findFolder(remaining, _ => true) match {
           case Left(error) => UnknownPath()
-          case Right(Some(f)) => PartialPath(f, remaining, None)
+          case Right(Some(f)) => PartialPath(f, remaining + "/", None)
           case _ => PartialPath(folder, relativePath, Some(remaining))
         }
       case x => x
+    }
+  }
+
+  def resolveFiles(currentFolder: VirtualFolder, prefix: String, filter: VirtualFile => Boolean) : Seq[String] = {
+    resolveFolder(currentFolder, prefix) match {
+      case UnknownPath() => Seq.empty
+      case PartialPath(folder, relativePath, Some(remaining)) =>
+        folder.files match {
+          case Left(error) => Seq.empty
+          case Right(files) => files.filter(filter).map(relativePath + _.name).toSeq
+        }
+      case _ => Seq.empty
     }
   }
 }
