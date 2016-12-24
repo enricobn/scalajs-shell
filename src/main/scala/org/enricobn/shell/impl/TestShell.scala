@@ -37,7 +37,7 @@ class TestShell(terminal: Terminal, vum: VirtualUsersManager, fs: VirtualFS, con
       terminal.add(error.message + VirtualShell.CRLF)
       terminal.flush()
     case Right(j) =>
-      j.path.foreach(context.addToPath(_))
+      j.path.foreach(context.addToPath)
       currentFolder = j.currentFolder
   }
 

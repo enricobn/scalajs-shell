@@ -185,10 +185,9 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
       history.add(line)
       val words = line.split(" ")
       run(words.head, words.tail.toArray: _*) match {
-        case Left(error) => {
+        case Left(error) =>
           terminal.add(error.message + CRLF)
           terminal.flush()
-        }
         case _ =>
       }
     }
