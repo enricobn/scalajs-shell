@@ -2,12 +2,11 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell._
 import org.enricobn.terminal.{StringPub, Terminal}
+import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
 
 import scala.collection.mutable
 import scala.scalajs.js.annotation.{JSExport, JSExportAll}
-
-import IOError._
 
 /**
   * Created by enrico on 12/4/16.
@@ -22,40 +21,25 @@ object VirtualShell {
 }
 @JSExport(name="VirtualShell")
 @JSExportAll
-class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var _currentFolder: VirtualFolder) {
+class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context: VirtualShellContext,
+                   private var _currentFolder: VirtualFolder) {
   import VirtualShell._
-  private val path = new ShellPathImpl()
   private var line = ""
   private val history = new CommandHistory
   private var x = 0
   private var xPrompt = 0
   private var inputHandler: InputHandler = null
 
-//  private val commands = new mutable.HashMap[String, VirtualCommand]()
-  private val completions = new ShellCompletions(path)
-
-  def createCommandFile(folder: VirtualFolder, command: VirtualCommand): Either[IOError, VirtualFile] = {
-    val vfRun = new VirtualFileRun() {
-      override def run(input: VFSInput, output: VFSOutput, args: String*) = {
-        command.run(VirtualShell.this, input, output, args: _*)
-      }
-    }
-
-    folder.createExecutableFile(command.getName, vfRun) match {
-      case Left(error) => error.message.ioErrorE
-      case Right(ex) =>
-        completions.addCommandFile(ex, command)
-        Right(ex)
-    }
-  }
-
   def currentFolder = _currentFolder
 
-  def run(command: String, args: String*) = {
+  def run(command: String, args: String*) : Either[IOError, Unit] = {
     // TODO simplify
-    val file = path.find(command, currentFolder)
+    val file = context.path.find(command, currentFolder)
     if (file.isDefined) {
-      val shellInput = new VFSInput {
+      if (!vum.checkExecuteAccess(file.get)) {
+        return "Permission denied!".ioErrorE
+      }
+      val shellInput = new ShellInput {
         override def subscribe(fun: Function[String, Unit]) {
           terminal.onInput(new mutable.Subscriber[String, mutable.Publisher[String]] {
             override def notify(pub: mutable.Publisher[String], event: String) {
@@ -65,7 +49,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
         }
       }
 
-      val shellOutput = new VFSOutput {
+      val shellOutput = new ShellOutput {
         override def write(s: String) {
           terminal.add(s)
         }
@@ -77,7 +61,8 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
 
       terminal.removeOnInputs()
 
-      val result = file.get.run(shellInput, shellOutput, args: _*)
+      // TODO get
+      val result = file.get.content.right.get.asInstanceOf[VirtualCommand].run(this, shellInput, shellOutput, args: _*)
 
       terminal.removeOnInputs()
       terminal.onInput(inputHandler)
@@ -95,10 +80,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
     prompt()
     inputHandler = new InputHandler()
     terminal.onInput(inputHandler)
-  }
-
-  def addToPath(folder: VirtualFolder) {
-    path.add(folder)
   }
 
   private def prompt() {
@@ -162,7 +143,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, private var
   }
 
   private def handleCompletion() : Unit = {
-    completions.complete(line, currentFolder) match {
+    context.completions.complete(line, currentFolder) match {
       case NewLine(newLine) =>
         eraseToPrompt()
         line = newLine

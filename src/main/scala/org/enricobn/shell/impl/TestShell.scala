@@ -10,7 +10,8 @@ import scala.scalajs.js.annotation.{JSExport, JSExportAll}
   */
 @JSExportAll
 @JSExport("TestShell")
-class TestShell(terminal: Terminal, vum: VirtualUsersManager, fs: VirtualFS) extends VirtualShell(terminal, vum, fs.root) {
+class TestShell(terminal: Terminal, vum: VirtualUsersManager, fs: VirtualFS, context: VirtualShellContext)
+    extends VirtualShell(terminal, vum, context, fs.root) {
   vum.addUser("guest", "guest")
 
   private val job = for {
@@ -22,9 +23,9 @@ class TestShell(terminal: Terminal, vum: VirtualUsersManager, fs: VirtualFS) ext
     text <- homeGuest.touch("text.txt").right
     _ <- (text.content = "Hello\nWorld").right
     _ <- text.chmod(666).right
-    _ <- createCommandFile(bin, new LsCommand()).right
-    _ <- createCommandFile(bin, new CdCommand()).right
-    _ <- createCommandFile(bin, new CatCommand()).right
+    _ <- context.createCommandFile(bin, new LsCommand()).right
+    _ <- context.createCommandFile(bin, new CdCommand()).right
+    _ <- context.createCommandFile(bin, new CatCommand()).right
   } yield new {
     val path = List(bin, usrBin)
     val textFile = text
@@ -36,29 +37,9 @@ class TestShell(terminal: Terminal, vum: VirtualUsersManager, fs: VirtualFS) ext
       terminal.add(error.message + VirtualShell.CRLF)
       terminal.flush()
     case Right(j) =>
-      j.path.foreach(addToPath(_))
+      j.path.foreach(context.addToPath(_))
       currentFolder = j.currentFolder
   }
 
   vum.logUser("guest", "guest")
-
-  /*
-  val bin = currentFolder.mkdir("bin").right.get
-
-  val usr = currentFolder.mkdir("usr").right.get
-  val usrBin = usr.mkdir("bin").right.get
-  currentFolder = currentFolder.mkdir("home").right.get
-  currentFolder = currentFolder.mkdir("guest").right.get
-  val text = currentFolder.touch("text.txt").right.get
-  text.chmod(666).right.get.apply()
-
-  createCommandFile(bin, new LsCommand())
-  createCommandFile(bin, new CdCommand())
-  createCommandFile(bin, new CatCommand())
-  addToPath(bin)
-  addToPath(usrBin)
-
-  vum.logUser("guest", "guest")
-  (text.content = "Hello\nWorld").right.get.apply()
-*/
 }

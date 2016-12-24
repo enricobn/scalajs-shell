@@ -32,12 +32,13 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     val text = currentFolder.touch("text.txt").right.get
     text.chmod(666)
 
-    val virtualShell = new VirtualShell(term, vum, currentFolder)
-    virtualShell.createCommandFile(bin, new LsCommand())
-    virtualShell.createCommandFile(bin, new CdCommand())
-    virtualShell.createCommandFile(bin, new CatCommand())
-    virtualShell.addToPath(bin)
-    virtualShell.addToPath(usrBin)
+    val context = new VirtualShellContext()
+    context.createCommandFile(bin, new LsCommand())
+    context.createCommandFile(bin, new CdCommand())
+    context.createCommandFile(bin, new CatCommand())
+    context.addToPath(bin)
+    context.addToPath(usrBin)
+    val virtualShell = new VirtualShell(term, vum, context, currentFolder)
 
     vum.logUser("guest", "guest")
     text.content = "Hello\nWorld"

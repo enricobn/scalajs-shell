@@ -1,10 +1,10 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell._
-import org.enricobn.vfs.{VFSInput, VFSOutput, VirtualFolder}
+import org.enricobn.vfs.IOError._
+import org.enricobn.vfs.VirtualFolder
 
 import scala.scalajs.js.annotation.JSExport
-import org.enricobn.vfs.IOError._
 
 /**
   * Created by enrico on 12/5/16.
@@ -13,7 +13,7 @@ import org.enricobn.vfs.IOError._
 class CdCommand extends VirtualCommand {
   override def getName: String = "cd"
 
-  override def run(shell: VirtualShell, in: VFSInput, out: VFSOutput, args: String*) = {
+  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) = {
     val folder: String =
       if (args.isEmpty)
         "/home/" + shell.vum.currentUser

@@ -1,8 +1,8 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.VirtualCommand
+import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.vfs.IOError._
-import org.enricobn.vfs.{VFSInput, VFSOutput, VirtualFolder}
+import org.enricobn.vfs.VirtualFolder
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -13,7 +13,7 @@ import scala.scalajs.js.annotation.JSExport
 class CatCommand extends VirtualCommand {
   override def getName: String = "cat"
 
-  override def run(shell: VirtualShell, in: VFSInput, out: VFSOutput, args: String*)  = {
+  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)  = {
     if (args.isEmpty) {
       "cat: illegal argument".ioErrorE
     } else {
@@ -25,9 +25,9 @@ class CatCommand extends VirtualCommand {
             case Left(error) => error.message.ioErrorE
             case Right(c) =>
               Right({
-                out.write(c.toString)
-                out.write(VirtualShell.CRLF)
-                out.flush()
+                shellOutput.write(c.toString)
+                shellOutput.write(VirtualShell.CRLF)
+                shellOutput.flush()
               })
           }
         case _ => s"cat: ${args(0)}: No such file or directory".ioErrorE
