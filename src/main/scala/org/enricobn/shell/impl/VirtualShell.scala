@@ -39,30 +39,14 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
       if (!vum.checkExecuteAccess(file.get)) {
         return "Permission denied!".ioErrorE
       }
-      val shellInput = new ShellInput {
-        override def subscribe(fun: Function[String, Unit]) {
-          terminal.onInput(new mutable.Subscriber[String, mutable.Publisher[String]] {
-            override def notify(pub: mutable.Publisher[String], event: String) {
-              fun(event)
-            }
-          })
-        }
-      }
+      val commandInput = new CommandInput()
 
-      val shellOutput = new ShellOutput {
-        override def write(s: String) {
-          terminal.add(s)
-        }
-
-        override def flush() {
-          terminal.flush()
-        }
-      }
+      val commandOutput = new CommandOutput()
 
       terminal.removeOnInputs()
 
       // TODO get
-      val result = file.get.content.right.get.asInstanceOf[VirtualCommand].run(this, shellInput, shellOutput, args: _*)
+      val result = file.get.content.right.get.asInstanceOf[VirtualCommand].run(this, commandInput, commandOutput, args: _*)
 
       terminal.removeOnInputs()
       terminal.onInput(inputHandler)
@@ -182,7 +166,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     line = command
   }
 
-  def eraseToPrompt(): Unit = {
+  private def eraseToPrompt(): Unit = {
     moveLeft(x - xPrompt)
     eraseFromCursor()
   }
@@ -198,6 +182,26 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
         }
         case _ =>
       }
+    }
+  }
+
+  private[VirtualShell] class CommandInput extends ShellInput {
+    override def subscribe(fun: Function[String, Unit]) {
+      terminal.onInput(new mutable.Subscriber[String, mutable.Publisher[String]] {
+        override def notify(pub: mutable.Publisher[String], event: String) {
+          fun(event)
+        }
+      })
+    }
+  }
+
+  private[VirtualShell] class CommandOutput extends ShellOutput {
+    override def write(s: String) {
+      terminal.add(s)
+    }
+
+    override def flush() {
+      terminal.flush()
     }
   }
 
