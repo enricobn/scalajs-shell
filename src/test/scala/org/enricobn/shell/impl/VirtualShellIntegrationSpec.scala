@@ -46,13 +46,14 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     (term.add _).expects(where {message: String => message.contains("/home/guest")})
     (term.flush _).expects().anyNumberOfTimes()
     (term.onInput _).expects(*).anyNumberOfTimes()
-    (term.removeOnInputs _).expects().anyNumberOfTimes()
 
     virtualShell.start()
 
     new {
       val shell = virtualShell
       val terminal = term
+      val textFile = text
+      val virtualUsersManager = vum
     }
   }
 
@@ -62,6 +63,8 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     (f.terminal.add _).expects(where {
       message: String => message.contains("text.txt") && message.contains("rw- rw- rw-")
     })
+
+    (f.terminal.removeOnInputs _).expects().times.repeat(2)
 
     f.shell.run("ls")
   }
@@ -81,7 +84,36 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       message: String => message.contains("usr") && message.contains("rwx rwx r-x")
     })
 
+    (f.terminal.removeOnInputs _).expects().times.repeat(2)
     f.shell.run("cd", "/")
+
+    (f.terminal.removeOnInputs _).expects().times.repeat(2)
     f.shell.run("ls")
+  }
+
+  "cd to not existent folder" should "return an error" in {
+    val f = fixture
+
+    (f.terminal.removeOnInputs _).expects().times.repeat(2)
+
+    f.shell.run("cd", "foo") match {
+      case Left(error) => assert(error.message == "cd: foo: No such file or directory")
+      case _ => fail("Should return an error.")
+    }
+  }
+
+  "running text.txt" should "return an error" in {
+    val f = fixture
+
+    f.virtualUsersManager.logUser("root", "root")
+
+    f.textFile.setExecutable()
+
+    (f.terminal.removeOnInputs _).expects().times.repeat(2)
+
+    f.shell.run("text.txt") match {
+      case Left(error) => assert(error.message == "File is not a command.")
+      case _ => fail("Should return an error.")
+    }
   }
 }

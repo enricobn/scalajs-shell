@@ -34,27 +34,36 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
 
   def run(command: String, args: String*) : Either[IOError, Unit] = {
     // TODO simplify
-    val file = context.path.find(command, currentFolder)
-    if (file.isDefined) {
-      if (!vum.checkExecuteAccess(file.get)) {
-        return "Permission denied!".ioErrorE
-      }
-      val commandInput = new CommandInput()
-
-      val commandOutput = new CommandOutput()
-
-      terminal.removeOnInputs()
-
-      // TODO get
-      val result = file.get.content.right.get.asInstanceOf[VirtualCommand].run(this, commandInput, commandOutput, args: _*)
-
-      terminal.removeOnInputs()
-      terminal.onInput(inputHandler)
-
-      result
-    } else
-      (command + ": No such file").ioErrorE
+    context.path.find(command, currentFolder)
+      .toRight(new IOError(command + ": No such file")).right
+      .flatMap(runFile(_, args: _*))
   }
+
+  private def runFile(file: VirtualFile, args: String*) : Either[IOError, Unit] = {
+    if (!vum.checkExecuteAccess(file)) {
+      return "Permission denied!".ioErrorE
+    }
+
+    val result = for {
+        content <- file.content.right
+        _ <- Right(terminal.removeOnInputs()).right
+        command <- checkVirtualCommand(content).right
+        run <- command.run(this, new CommandInput(), new CommandOutput(), args: _*).right
+      } yield {
+        run
+      }
+
+    terminal.removeOnInputs()
+    terminal.onInput(inputHandler)
+
+    result
+  }
+
+  private def checkVirtualCommand(content: AnyRef) : Either[IOError, VirtualCommand] =
+    content match {
+      case command : VirtualCommand => Right(command)
+      case _ => "File is not a command.".ioErrorE
+    }
 
   def currentFolder_=(folder: VirtualFolder) {
     _currentFolder = folder
