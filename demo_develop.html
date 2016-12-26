@@ -18,56 +18,9 @@
             var input = new CanvasInputHandler('screenCanvas');
             var terminal = new Terminal(screen, input, 'typewriter-key-1.wav');
 
-            var rootPassword = 'root';
-            var vum = new VirtualUsersManagerImpl(rootPassword);
-            var fs = new InMemoryFS(vum);
-
-            var shell = new TestShell(terminal, vum, fs);
-
-            /*
-            vum.addUser('guest', 'guest');
-
-
-            var currentFolder = fs.root;
-
-            var bin = currentFolder.mkdir('bin');
-
-            var usr = currentFolder.mkdir('usr');
-            var usrBin = usr.mkdir('bin');
-            currentFolder = currentFolder.mkdir('home');
-            currentFolder = currentFolder.mkdir('guest');
-            var text = currentFolder.touch('text.txt');
-            text.chmod(666);
-
-            var shell = new VirtualShell(terminal, vum, currentFolder);
-            shell.createCommandFile(bin, new LsCommand());
-            shell.createCommandFile(bin, new CdCommand());
-            shell.createCommandFile(bin, new CatCommand());
-            shell.addToPath(bin);
-            shell.addToPath(usrBin);
-
-            vum.logUser('guest', 'guest');
-            text.content = 'Hello\nWorld';
-            */
+            var shell = TestShellFactory().create(terminal);
 
             shell.start();
-
-/*
-            var audio = document.getElementById("audio");
-            audio.play();
-            audio.play();
-
-            for (var i=0; i < 100; i++) {
-                terminal.add('Hello world ' + i + '\n');
-                screen.update();
-            }
-            screen.scroll_up(5, true);
-            screen.update();
-            screen.scroll_down(5, true);
-            screen.update();
-            terminal.add('Hello world\n');
-            screen.update();
-*/
         </script>
 
     </body>
