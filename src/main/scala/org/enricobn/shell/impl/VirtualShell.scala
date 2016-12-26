@@ -114,6 +114,21 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     terminal.onInput(inputHandler)
   }
 
+  def startWithCommand(command: String, args: String*): Unit = {
+    inputHandler = new InputHandler()
+    terminal.onInput(inputHandler)
+    run(command, args: _*) match {
+      case Left(error) =>
+        terminal.add(s"Error starting with command $command $args")
+        terminal.flush()
+        prompt()
+      case Right(makePrompt) =>
+        if (makePrompt) {
+          prompt()
+        }
+    }
+  }
+
   private def prompt() {
 //    val prompt = new ShellColors()
 //        .yellow(vum.currentUser + ":")
