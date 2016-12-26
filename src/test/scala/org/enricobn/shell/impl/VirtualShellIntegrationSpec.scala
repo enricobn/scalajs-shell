@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.VirtualFolder
+import org.enricobn.vfs.{IOError, VirtualFolder}
 import org.enricobn.vfs.impl.VirtualUsersManagerImpl
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.scalatest.MockFactory
@@ -66,7 +66,9 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
 
-    f.shell.run("ls")
+    assertPrompt(
+      f.shell.run("ls")
+    )
   }
 
   "cd" should "show bin, home and usr" in {
@@ -85,10 +87,12 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     })
 
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
-    f.shell.run("cd", "/")
+    assertPrompt(f.shell.run("cd", "/"))
 
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
-    f.shell.run("ls")
+    assertPrompt(
+      f.shell.run("ls")
+    )
   }
 
   "cd to not existent folder" should "return an error" in {
@@ -96,10 +100,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
 
-    f.shell.run("cd", "foo") match {
-      case Left(error) => assert(error.message == "cd: foo: No such file or directory")
-      case _ => fail("Should return an error.")
-    }
+    assertError(
+      f.shell.run("cd", "foo"),
+      "cd: foo: No such file or directory"
+    )
   }
 
   "running text.txt" should "return an error" in {
@@ -111,8 +115,22 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
 
-    f.shell.run("text.txt") match {
-      case Left(error) => assert(error.message == "File is not a command.")
+    assertError(
+      f.shell.run("text.txt"),
+      "File is not a command."
+    )
+  }
+
+  private def assertPrompt(result: Either[IOError, Boolean], expectedPrompt : Boolean = true): Unit = {
+    result match {
+      case Left(error) => fail(error.message)
+      case Right(prompt) => assert(prompt == expectedPrompt)
+    }
+  }
+
+  private def assertError(result: Either[IOError, Boolean], message: String): Unit = {
+    result match {
+      case Left(error) => assert(error.message == message)
       case _ => fail("Should return an error.")
     }
   }

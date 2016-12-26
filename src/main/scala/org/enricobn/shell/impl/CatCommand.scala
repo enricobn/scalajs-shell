@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
+import org.enricobn.shell.{RunContext, ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs.VirtualFolder
 
@@ -28,6 +28,7 @@ class CatCommand extends VirtualCommand {
                 shellOutput.write(c.toString)
                 shellOutput.write(VirtualShell.CRLF)
                 shellOutput.flush()
+                new RunContext()
               })
           }
         case _ => s"cat: ${args(0)}: No such file or directory".ioErrorE

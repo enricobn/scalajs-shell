@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand}
+import org.enricobn.shell.{RunContext, ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.vfs._
 
 import scala.scalajs.js.annotation.JSExport
@@ -29,6 +29,7 @@ class LsCommand extends VirtualCommand {
     Right({
       currentFolder.folders.right.get.foreach(folder => print(shellOutput, folder))
       currentFolder.files.right.get.foreach(file => print(shellOutput, file))
+      new RunContext()
     })
   }
 

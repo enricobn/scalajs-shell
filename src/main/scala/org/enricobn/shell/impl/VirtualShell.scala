@@ -4,14 +4,18 @@ import org.enricobn.shell._
 import org.enricobn.terminal.{StringPub, Terminal}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
+import org.scalajs.dom
 
 import scala.collection.mutable
 import scala.scalajs.js.annotation.{JSExport, JSExportAll}
+import scala.scalajs.js.timers._
 
 /**
   * Created by enrico on 12/4/16.
   */
 object VirtualShell {
+  private val INTERACTIVE_INTERVAL: Int = 500
+
   val ESC = 27.toChar.toString
   val TAB = 9.toChar.toString
   val BACKSPACE = 8.toChar.toString
@@ -32,14 +36,18 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
 
   def currentFolder = _currentFolder
 
-  def run(command: String, args: String*) : Either[IOError, Unit] = {
+  def run(command: String, args: String*) : Either[IOError, Boolean] = {
     // TODO simplify
     context.path.find(command, currentFolder)
       .toRight(new IOError(command + ": No such file")).right
       .flatMap(runFile(_, args: _*))
   }
 
-  private def runFile(file: VirtualFile, args: String*) : Either[IOError, Unit] = {
+  /**
+    *
+    * @return true if I must show the prompt
+    */
+  private def runFile(file: VirtualFile, args: String*) : Either[IOError, Boolean] = {
     if (!vum.checkExecuteAccess(file)) {
       return "Permission denied!".ioErrorE
     }
@@ -53,10 +61,41 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
         run
       }
 
-    terminal.removeOnInputs()
-    terminal.onInput(inputHandler)
+    result match {
+      case Left(error) =>
+        terminal.removeOnInputs()
+        terminal.onInput(inputHandler)
+        error.message.ioErrorE
+      case Right(runContext) =>
+        Right(
+          if (runContext.interactive) {
+            setTimeout(INTERACTIVE_INTERVAL) {
+              updateRunContext(runContext)
+            }
+            false
+          } else {
+            terminal.removeOnInputs()
+            terminal.onInput(inputHandler)
+            true
+          }
+        )
+    }
+  }
 
-    result
+  private def updateRunContext(runContext: RunContext): Unit = {
+    if (!runContext.running) {
+      terminal.removeOnInputs()
+      terminal.onInput(inputHandler)
+      prompt()
+    } else {
+      dom.window.requestAnimationFrame((time: Double) => {
+        runContext.update()
+        setTimeout(INTERACTIVE_INTERVAL) {
+          updateRunContext(runContext)
+        }
+      })
+    }
+
   }
 
   private def checkVirtualCommand(content: AnyRef) : Either[IOError, VirtualCommand] =
@@ -97,10 +136,10 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
       if (event == CR) {
         terminal.add(CRLF)
         terminal.flush()
-        processLine(line)
+        if (processLine(line)) {
+          prompt()
+        }
         line = ""
-        x = 0
-        prompt()
       } else if (event == TAB) {
         if (line.nonEmpty) {
           handleCompletion()
@@ -180,7 +219,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     eraseFromCursor()
   }
 
-  private def processLine(line: String) {
+  private def processLine(line: String) : Boolean = {
     if (line.nonEmpty) {
       history.add(line)
       val words = line.split(" ")
@@ -188,8 +227,11 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
         case Left(error) =>
           terminal.add(error.message + CRLF)
           terminal.flush()
-        case _ =>
+          true
+        case Right(prompt) => prompt
       }
+    } else {
+      true
     }
   }
 
