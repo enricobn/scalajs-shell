@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell._
-import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualPermission, VirtualPermissions}
+import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualPermission}
 import org.scalamock.matchers.ArgThat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
@@ -12,8 +12,8 @@ import org.scalatest.{FlatSpec, Matchers}
 class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   def fixture = {
     new {
-      val path = new ShellPathImpl
-      val completions = new ShellCompletions(path)
+      val context = stub[VirtualShellContext]
+      val completions = new ShellCompletions(context)
     }
   }
 
@@ -31,14 +31,10 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   "a partial command" should "return NewLine if there's only one command match" in {
     val f = fixture
     val currentFolder = stub[VirtualFolder]
-    val cat = stubCommandFile("cat")
-    val ls = stubCommandFile("ls")
+    val cat = stubCommandFile(f.context, "cat")
+    val ls = stubCommandFile(f.context,"ls")
 
-    val bin = stub[VirtualFolder]
-
-    (bin.files _).when().returns(Right(Set(cat, ls)))
-
-    f.path.add(bin)
+    stubPath(f.context, Set(cat, ls))
 
     val result = f.completions.complete("c", currentFolder)
 
@@ -51,13 +47,9 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   "no matching partial command" should "return NoProposals" in {
     val f = fixture
     val currentFolder = stub[VirtualFolder]
-    val ls = stubCommandFile("ls")
+    val ls = stubCommandFile(f.context, "ls")
 
-    val bin = stub[VirtualFolder]
-
-    (bin.files _).when().returns(Right(Set(ls)))
-
-    f.path.add(bin)
+    stubPath(f.context, Set(ls))
 
     val result = f.completions.complete("c", currentFolder)
     result match {
@@ -69,14 +61,10 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   "a partial command" should "return Proposals if there's more than one command match" in {
     val f = fixture
     val currentFolder = stub[VirtualFolder]
-    val cat = stubCommandFile("cat")
-    val ls = stubCommandFile("cd")
+    val cat = stubCommandFile(f.context, "cat")
+    val ls = stubCommandFile(f.context, "cd")
 
-    val bin = stub[VirtualFolder]
-
-    (bin.files _).when().returns(Right(Set(cat, ls)))
-
-    f.path.add(bin)
+    stubPath(f.context, Set(cat, ls))
 
     val result = f.completions.complete("c", currentFolder)
     result match {
@@ -88,21 +76,11 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   "a complete command with no arguments" should "return Proposals from the command itself" in {
     val f = fixture
     val currentFolder = stub[VirtualFolder]
-    val cat = stubCommandFile("cat")
-
-    (cat.path _).when().returns("/bin/cat")
-
     val catCommand = stub[VirtualCommand]
     (catCommand.completion _).when("cat ", sameRef(currentFolder)).returns(Seq("hello", "world"))
+    val cat = stubCommandFile(f.context, "cat", catCommand)
 
-    f.completions.addCommandFile(cat, catCommand)
-
-    val bin = stub[VirtualFolder]
-    (bin.findFile(_: String)).when("cat").returns(Right(Some(cat)))
-
-    (bin.files _).when().returns(Right(Set(cat)))
-
-    f.path.add(bin)
+    stubPath(f.context, Set(cat))
 
     val result = f.completions.complete("cat ", currentFolder)
     result match {
@@ -111,17 +89,27 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     }
   }
 
-  def stubCommandFile(name: String) : VirtualFile = {
-    val command = stub[VirtualFile]
-    (command.name _).when().returns(name)
+  private def stubCommandFile(context: VirtualShellContext, name: String, virtualCommand: VirtualCommand = stub[VirtualCommand]) : VirtualFile = {
+    val commandFile = stub[VirtualFile]
+    (commandFile.name _).when().returns(name)
 
     val permission = stub[VirtualPermission]
     (permission.execute _).when().returns(true)
 
-    (command.getCurrentUserPermission _).when().returns(permission)
-    command
+    (commandFile.getCurrentUserPermission _).when().returns(permission)
+
+    (context.findCommand _).when(name, *).returns(Some(commandFile))
+    (context.getCommand _).when(sameRef(commandFile)).returns(Right(virtualCommand))
+
+    commandFile
   }
 
-  def sameRef[T](ref: T) : ArgThat[T] = new ArgThat[T](v => v.asInstanceOf[AnyRef] eq ref.asInstanceOf[AnyRef])
+  private def sameRef[T](ref: T) : ArgThat[T] = new ArgThat[T](v => v.asInstanceOf[AnyRef] eq ref.asInstanceOf[AnyRef])
+
+  private def stubPath(context: VirtualShellContext, files: Set[VirtualFile]): Unit = {
+    val bin = stub[VirtualFolder]
+    (bin.files _).when().returns(Right(files))
+    (context.path _).when().returns(Seq(bin))
+  }
 
 }

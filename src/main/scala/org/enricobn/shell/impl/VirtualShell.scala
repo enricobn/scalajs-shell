@@ -33,12 +33,13 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   private var x = 0
   private var xPrompt = 0
   private var inputHandler: InputHandler = null
+  private val completions = new ShellCompletions(context)
 
   def currentFolder = _currentFolder
 
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
     // TODO simplify
-    context.path.find(command, currentFolder)
+    context.findCommand(command, currentFolder)
       .toRight(new IOError(command + ": No such file")).right
       .flatMap(runFile(_, args: _*))
   }
@@ -53,9 +54,8 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     }
 
     val result = for {
-        content <- file.content.right
+        command <- context.getCommand(file).right
         _ <- Right(terminal.removeOnInputs()).right
-        command <- checkVirtualCommand(content).right
         run <- command.run(this, new CommandInput(), new CommandOutput(), args: _*).right
       } yield {
         run
@@ -97,12 +97,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     }
 
   }
-
-  private def checkVirtualCommand(content: AnyRef) : Either[IOError, VirtualCommand] =
-    content match {
-      case command : VirtualCommand => Right(command)
-      case _ => "File is not a command.".ioErrorE
-    }
 
   def currentFolder_=(folder: VirtualFolder) {
     _currentFolder = folder
@@ -190,7 +184,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   }
 
   private def handleCompletion() : Unit = {
-    context.completions.complete(line, currentFolder) match {
+    completions.complete(line, currentFolder) match {
       case NewLine(newLine) =>
         eraseToPrompt()
         line = newLine

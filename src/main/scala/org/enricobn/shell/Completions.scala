@@ -1,8 +1,6 @@
 package org.enricobn.shell
 
-import org.enricobn.vfs.{IOError, VirtualFile, VirtualFolder}
-import org.enricobn.vfs.IOError._
-import IOError._
+import org.enricobn.vfs.{VirtualFile, VirtualFolder}
 /**
   * Created by enrico on 12/14/16.
   */

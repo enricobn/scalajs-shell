@@ -3,9 +3,8 @@ package org.enricobn.shell.impl
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.VirtualUsersManagerImpl
 import org.enricobn.vfs.inmemory.InMemoryFS
-import org.enricobn.vfs.{VirtualFS, VirtualUsersManager}
 
-import scala.scalajs.js.annotation.{JSExport, JSExportAll}
+import scala.scalajs.js.annotation.JSExport
 
 /**
   * Created by enrico on 12/19/16.
@@ -17,7 +16,7 @@ object TestShellFactory {
     val vum = new VirtualUsersManagerImpl("root")
     val fs = new InMemoryFS(vum)
     val rootFolder = fs.root
-    val context = new VirtualShellContext()
+    val context = new VirtualShellContextImpl()
 
     vum.addUser("guest", "guest")
 

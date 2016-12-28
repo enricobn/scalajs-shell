@@ -1,9 +1,9 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.{IOError, VirtualFolder}
 import org.enricobn.vfs.impl.VirtualUsersManagerImpl
 import org.enricobn.vfs.inmemory.InMemoryFS
+import org.enricobn.vfs.{IOError, VirtualFolder}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -32,7 +32,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     val text = currentFolder.touch("text.txt").right.get
     text.chmod(666)
 
-    val context = new VirtualShellContext()
+    val context = new VirtualShellContextImpl()
     context.createCommandFile(bin, new LsCommand())
     context.createCommandFile(bin, new CdCommand())
     context.createCommandFile(bin, new CatCommand())
@@ -113,7 +113,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     f.textFile.setExecutable()
 
-    (f.terminal.removeOnInputs _).expects().times.repeat(2)
+    (f.terminal.removeOnInputs _).expects().times.repeat(1)
 
     assertError(
       f.shell.run("text.txt"),
