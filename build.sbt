@@ -3,6 +3,7 @@ val project_version = "1.0.0"
 
 val artifactPrefix = "target/scala-2.11/" + project_name + "-" + project_version
 
+scalacOptions ++= Seq("-feature", "-deprecation")
 
 lazy val root = (project in file("."))
     .settings(

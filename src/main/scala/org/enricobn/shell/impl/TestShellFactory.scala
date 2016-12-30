@@ -6,6 +6,9 @@ import org.enricobn.vfs.inmemory.InMemoryFS
 
 import scala.scalajs.js.annotation.JSExport
 
+// to access members of structural types (new {}) without warnings
+import scala.language.reflectiveCalls
+
 /**
   * Created by enrico on 12/19/16.
   */
@@ -27,8 +30,8 @@ object TestShellFactory {
       home <- rootFolder.mkdir("home").right
       homeGuest <- home.mkdir("guest").right
       text <- homeGuest.touch("text.txt").right
-      _ <- (text.content = "Hello\nWorld").right
-      _ <- text.chmod(666).right
+      _ <- (text.content = "Hello\nWorld").toLeft(None).right
+      _ <- text.chmod(666).toLeft(None).right
       _ <- context.createCommandFile(bin, new LsCommand()).right
       _ <- context.createCommandFile(bin, new CdCommand()).right
       _ <- context.createCommandFile(bin, new CatCommand()).right

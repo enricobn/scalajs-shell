@@ -7,6 +7,9 @@ import org.enricobn.vfs.{IOError, VirtualFolder}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
+// to access members of structural types (new {}) without warnings
+import scala.language.reflectiveCalls
+
 /**
   * Created by enrico on 12/12/16.
   */
