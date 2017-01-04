@@ -34,6 +34,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   private var xPrompt = 0
   private var inputHandler: InputHandler = null
   private val completions = new ShellCompletions(context)
+  private var runningInteractiveCommands = false
 
   def currentFolder = _currentFolder
 
@@ -44,11 +45,19 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
       .flatMap(runFile(_, args: _*))
   }
 
+  def stopInteractiveCommands(): Unit = {
+    runningInteractiveCommands = false
+  }
+
   /**
     *
     * @return true if I must show the prompt
     */
   private def runFile(file: VirtualFile, args: String*) : Either[IOError, Boolean] = {
+    if (runningInteractiveCommands) {
+      return "Interactive command still running. Stop it first.".ioErrorE
+    }
+
     if (!vum.checkExecuteAccess(file)) {
       return "Permission denied!".ioErrorE
     }
@@ -70,6 +79,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
         Right(
           if (runContext.interactive) {
             setTimeout(INTERACTIVE_INTERVAL) {
+              runningInteractiveCommands = true
               updateRunContext(runContext)
             }
             false
@@ -83,7 +93,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   }
 
   private def updateRunContext(runContext: RunContext): Unit = {
-    if (!runContext.running) {
+    if (!runningInteractiveCommands || !runContext.running) {
       terminal.removeOnInputs()
       terminal.onInput(inputHandler)
       prompt()
@@ -95,7 +105,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
         }
       })
     }
-
   }
 
   def currentFolder_=(folder: VirtualFolder) {
@@ -113,7 +122,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     terminal.onInput(inputHandler)
     run(command, args: _*) match {
       case Left(error) =>
-        terminal.add(s"Error starting with command $command $args")
+        terminal.add(s"Error starting with command $command ${args.mkString(",")}\n")
         terminal.flush()
         prompt()
       case Right(makePrompt) =>
