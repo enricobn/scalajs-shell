@@ -35,6 +35,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   private var inputHandler: InputHandler = null
   private val completions = new ShellCompletions(context)
   private var runningInteractiveCommands = false
+  private var whenDone: () => Boolean = null
 
   def currentFolder = _currentFolder
 
@@ -45,7 +46,13 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
       .flatMap(runFile(_, args: _*))
   }
 
-  def stopInteractiveCommands(): Unit = {
+  /**
+    *
+    * @param whenDone will be called when interactive commands have been stopped. Return true if you like to
+    *                 show the prompt.
+    */
+  def stopInteractiveCommands(whenDone: () => Boolean): Unit = {
+    this.whenDone = whenDone
     runningInteractiveCommands = false
   }
 
@@ -96,7 +103,14 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     if (!runningInteractiveCommands || !runContext.running) {
       terminal.removeOnInputs()
       terminal.onInput(inputHandler)
-      prompt()
+      if (!runningInteractiveCommands) {
+        if (whenDone.apply()) {
+          prompt()
+        }
+      } else {
+        prompt()
+      }
+      runningInteractiveCommands = false
     } else {
       dom.window.requestAnimationFrame((time: Double) => {
         runContext.update()
