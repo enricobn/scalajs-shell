@@ -7,7 +7,7 @@ class RunContext {
 
   def interactive = false
 
-  def update() = {}
+  def update(): Unit = {}
 
   def running = true
 
