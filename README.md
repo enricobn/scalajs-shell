@@ -1,7 +1,7 @@
 scalajs-shell
 ================
-A shell like javascript library
+A javascript library written in scalajs to make a shell in the browser.
 
-thanks
+Thanks
 ======
-typewrter sound for demo from http://www.soundjay.com/
+typewriter sound for demo from http://www.soundjay.com/

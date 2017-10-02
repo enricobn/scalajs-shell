@@ -1,15 +1,21 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell._
+import org.enricobn.shell.VirtualShellContext
 import org.enricobn.vfs.VirtualFolder
 
 /**
   * Created by enrico on 12/15/16.
   */
-class ShellCompletions(context: VirtualShellContext) extends Completions {
 
-  override def complete(line: String, currentFolder: VirtualFolder): CompletionResult = {
-    val parsedLine = new ParsedLine(line)
+sealed trait CompletionResult
+final case class NewLine(line: String) extends CompletionResult
+final case class Proposals(proposals: Seq[String]) extends CompletionResult
+final case class NoProposals() extends CompletionResult
+
+class ShellCompletions(context: VirtualShellContext) {
+
+  def complete(line: String, currentFolder: VirtualFolder): CompletionResult = {
+    val parsedLine = new CommandLine(line)
 
     if (parsedLine.invalidCommand)
       return NoProposals()

@@ -37,7 +37,7 @@ class CatCommand extends VirtualCommand {
   }
 
   override def completion(line: String, currentFolder: VirtualFolder): Seq[String] = {
-    val parsedLine = new ParsedLine(line)
+    val parsedLine = new CommandLine(line)
     val start = parsedLine.lastArgument.getOrElse("")
 
     currentFolder.files match {

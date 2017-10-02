@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.vfs.VirtualUsersManager
-import org.enricobn.vfs.inmemory.InMemoryFS
+import org.enricobn.vfs.inmemory.{InMemoryFS, InMemoryFolder}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -12,7 +12,7 @@ import scala.language.reflectiveCalls
   * Created by enrico on 12/16/16.
   */
 class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
-  def fixture = {
+  private def fixture = {
     val _vum = stub[VirtualUsersManager]
     (_vum.checkWriteAccess _).when(*).returns(true)
     (_vum.checkReadAccess _).when(*).returns(true)
@@ -25,8 +25,8 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     new {
       val command = new CdCommand
-      val vum = _vum
-      val currentFolder = guest
+      val vum: VirtualUsersManager = _vum
+      val currentFolder: InMemoryFolder = guest
     }
   }
 
@@ -62,7 +62,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
   "completion of 'cd ' in /home" should "return guest/" in {
     val f = fixture
-    val result = f.command.completion("cd ", f.currentFolder.parent)
+    val result = f.command.completion("cd ", f.currentFolder.parent.get)
     assert(result == Seq("guest/"), result)
   }
 
@@ -86,7 +86,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
   "completion of 'cd guest' from /home" should "return no completions" in {
     val f = fixture
-    val result = f.command.completion("cd guest", f.currentFolder.parent)
+    val result = f.command.completion("cd guest", f.currentFolder.parent.get)
     assert(result.isEmpty, result)
   }
 

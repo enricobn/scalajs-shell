@@ -16,13 +16,14 @@ import scala.scalajs.js.timers._
 object VirtualShell {
   private val INTERACTIVE_INTERVAL: Int = 500
 
-  val ESC = 27.toChar.toString
-  val TAB = 9.toChar.toString
-  val BACKSPACE = 8.toChar.toString
-  val CR = 13.toChar.toString
-  val LF = 10.toChar.toString
-  val CRLF = CR + LF
+  val ESC: String = 27.toChar.toString
+  val TAB: String = 9.toChar.toString
+  val BACKSPACE: String = 8.toChar.toString
+  val CR: String = 13.toChar.toString
+  val LF: String = 10.toChar.toString
+  val CRLF: String = CR + LF
 }
+
 @JSExport(name="VirtualShell")
 @JSExportAll
 class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context: VirtualShellContext,
@@ -32,12 +33,12 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   private val history = new CommandHistory
   private var x = 0
   private var xPrompt = 0
-  private var inputHandler: InputHandler = null
+  private var inputHandler: InputHandler = _
   private val completions = new ShellCompletions(context)
   private var runningInteractiveCommands = false
-  private var whenDone: () => Boolean = null
+  private var whenDone: () => Boolean = _
 
-  def currentFolder = _currentFolder
+  def currentFolder: VirtualFolder = _currentFolder
 
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
     // TODO simplify

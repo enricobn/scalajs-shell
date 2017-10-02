@@ -1,0 +1,36 @@
+DOING
+------
+
+NEXT
+-----
+- I don't like that completions (from Completions), for files and folders, lists all path and not only names.
+  For example given the files:
+  /usr/bin/one.txt
+  /usr/bin/two.txt
+
+  if I do completion for /usr/bin/ I get:
+  /usr/bin/one.txt
+  /usr/bin/two.txt
+
+  but I want:
+  one.txt
+  two.txt
+
+  But pay attention: the commands expect the full path.
+
+- use VirtualCommandArguments in commands (cd, cat, ls)
+- VirtualCommandArgument.complete must return an information to know if there is one precise match.
+  For example if the argument is a file then it's an existent file, in that case and if there are more
+  mandatory arguments, then I add a space to the result, so the user can digit the next arg.
+- completions: if the proposals start with a common prefix longer than the argument of the user,
+  replace the argument with that prefix.
+  For example if I have the files:
+  warehouse1
+  warehouse2
+
+  and I digit "cat ware" then tab, the command line must be "cd warehouse".
+
+DONE
+-----
+- implement completion for FileArgument and FolderArgument
+- use VirtualCommandArguments in CdCommand

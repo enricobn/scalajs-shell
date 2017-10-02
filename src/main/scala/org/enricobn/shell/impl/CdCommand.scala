@@ -2,7 +2,7 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell._
 import org.enricobn.vfs.IOError._
-import org.enricobn.vfs.VirtualFolder
+import org.enricobn.vfs.{VirtualFile, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -11,6 +11,11 @@ import scala.scalajs.js.annotation.JSExport
   */
 @JSExport(name = "CdCommand")
 class CdCommand extends VirtualCommand {
+
+  private val arguments = new VirtualCommandArguments(
+    FolderArgument("folder", false, Some(_.getCurrentUserPermission.execute))
+  )
+
   override def getName: String = "cd"
 
   override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) = {
@@ -33,41 +38,7 @@ class CdCommand extends VirtualCommand {
   }
 
   override def completion(line: String, currentFolder: VirtualFolder): Seq[String] = {
-    val parsedLine = new ParsedLine(line)
-    val start = parsedLine.lastArgument.getOrElse("")
-
-    if (parsedLine.lastArgument.isDefined) {
-      Completions.resolveFolder(currentFolder, parsedLine.lastArgument.get) match {
-        case UnknownPath() => Seq.empty
-        case partialPath: PartialPath =>
-          partialPath.folder.folders match {
-            case Left(error) => Seq.empty
-            case Right(folders) =>
-              if (partialPath.remaining.isDefined) {
-                folders
-                  .filter (_.getCurrentUserPermission.execute)
-                  .filter (_.name.startsWith (partialPath.remaining.get) )
-                  .map (partialPath.relativePath + _.name + "/")
-                  .toSeq
-              } else {
-                folders
-                  .filter (_.getCurrentUserPermission.execute)
-                  .map (partialPath.relativePath + _.name + "/")
-                  .toSeq
-              }
-          }
-      }
-    } else {
-      currentFolder.folders match {
-        case Left(error) => Seq.empty
-        case Right(fs) =>
-          fs
-            .filter(_.getCurrentUserPermission.execute)
-            .map(_.name + "/")
-            .filter(_.startsWith(start))
-            .toSeq
-      }
-    }
+    arguments.complete(currentFolder, line)
   }
 
 }
