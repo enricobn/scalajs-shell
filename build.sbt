@@ -1,3 +1,5 @@
+import sbt.Keys.libraryDependencies
+
 scalaVersion in ThisBuild := "2.11.8"
 
 val project_name = "scalajs-shell"
@@ -6,6 +8,11 @@ val project_version = "1.0.0-SNAPSHOT"
 val artifactPrefix = "target/scala-2.11/" + project_name + "-" + project_version
 
 scalacOptions ++= Seq("-feature", "-deprecation")
+
+resolvers ++= Seq(
+  Resolver.sonatypeRepo("releases"),
+  Resolver.sonatypeRepo("snapshots")
+)
 
 lazy val root = (project in file("."))
     .settings(
@@ -19,7 +26,8 @@ lazy val root = (project in file("."))
       libraryDependencies += "org.enricobn" %%% "scalajs-vfs" % "1.0.0-SNAPSHOT" changing(),
       libraryDependencies += "org.enricobn" %%% "scalajs-terminal" % "1.0.0" changing(),
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.3.0" % "test"
+      libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.3.0" % "test",
+      libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
     )
     .enablePlugins(ScalaJSPlugin)
     
