@@ -17,19 +17,6 @@ object TestingShapeless {
 
   }
 
-  def parseArgs1 : Unit = {
-    val args = StringArg() :: IntArg() :: HNil
-
-    val argAndValues = args map toArgValue
-
-    //    implicit val e = implicitly[Mapper[parse.type, mapper.Out]]
-
-    val parsed = argAndValues map parse
-
-    println(argAndValues)
-
-  }
-
   def parseArgs[IN <: HList, OUT <: HList, OUT1 <: HList](args: IN)
                                                          (implicit mapper : Mapper.Aux[toArgValue.type, IN, OUT],
                                                           mapper1 : Mapper.Aux[parse.type, OUT, OUT1]) : Unit = {
@@ -92,10 +79,10 @@ object choose extends (Set ~> Option) {
 }
 
 object toArgValue extends Poly1 {
-  implicit val caseString : Case.Aux[StringArg,ArgAndValueString] =
-    at(arg => ArgAndValueString(arg, None))
-  implicit val caseInt : Case.Aux[IntArg,ArgAndValueInt] =
-    at(arg => ArgAndValueInt(arg, None))
+  implicit val caseString : Case.Aux[StringArg,ArgAndValue[String]] =
+    at(arg => ArgAndValue(arg, None))
+  implicit val caseInt : Case.Aux[IntArg,ArgAndValue[Int]] =
+    at(arg => ArgAndValue(arg, None))
 
 //  implicit def all[T] : Case.Aux[Arg[T],ArgAndValue[T]] =
 //    at(arg => ArgAndValue(arg, None))
@@ -126,9 +113,9 @@ object toArgValue extends Poly1 {
 //}
 
 object parse extends Poly1 {
-  implicit val caseString : Case.Aux[ArgAndValueString,Option[String]] =
+  implicit val caseString : Case.Aux[ArgAndValue[String],Option[String]] =
     at(a => toOption(a))
-  implicit val caseInt : Case.Aux[ArgAndValueInt,Option[Int]] =
+  implicit val caseInt : Case.Aux[ArgAndValue[Int],Option[Int]] =
     at(a => toOption(a))
 
   private def toOption[T](a: ArgAndValue[T]) =
@@ -138,13 +125,9 @@ object parse extends Poly1 {
       }
 }
 
-sealed trait ArgAndValue[T] {
-  val arg: Arg[T]
-  val value: Option[String]
-}
+case class ArgAndValue[T](arg: Arg[T], value: Option[String])
 
-final case class ArgAndValueString(arg: Arg[String], value: Option[String]) extends ArgAndValue[String]
-final case class ArgAndValueInt(arg: Arg[Int], value: Option[String]) extends ArgAndValue[Int]
+
 
 sealed trait Arg[T] {
 
