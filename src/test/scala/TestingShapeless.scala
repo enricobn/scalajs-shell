@@ -1,13 +1,13 @@
 import scala.language.higherKinds
-
 import shapeless.nat._
-import shapeless.ops.hlist.{At, Mapper}
-import shapeless.{HList, HNil, Nat, Poly1}
+import shapeless.ops.hlist.{At, Mapper, Reverse, RightFolder}
+import shapeless.{HList, HNil, Nat, Poly1, Poly2}
+import shapeless._
 
 object TestingShapeless {
 
   def main(args: Array[String]): Unit = {
-    val parsed = parseArgs(StringArg() :: IntArg() :: HNil)
+    val parsed = parseArgs(StringArg() :: IntArg() :: HNil, List("Hello", "1"))
 
     val string = parsed.get(_0)
     val int = parsed.get(_1)
@@ -21,24 +21,43 @@ object TestingShapeless {
     def get(n: Nat)(implicit at: At[L, n.N]): at.Out = hl[n.N]
   }
 
-  def parseArgs[IN <: HList, OUT <: HList, OUT1 <: HList](args: IN)
-                                                         (implicit mapper : Mapper.Aux[toArgValue.type, IN, OUT],
-                                                          mapper1 : Mapper.Aux[parse.type, OUT, OUT1]): HListContainer[OUT1] = {
+  def parseArgs[IN <: HList, OUT <: HList, OUT1 <: HList](args: IN, values: List[String])
+      (implicit folder: RightFolder.Aux[IN, (HNil, List[String], Int), toArgValue.type, (OUT, List[String], Int)],
+      mapper1 : Mapper.Aux[parse.type, OUT, OUT1]): HListContainer[OUT1] = {
 
-    val values = List("Hello", "world")
-
-    val argAndValues = args map toArgValue
+    val argAndValues = args.foldRight((HNil : HNil, values.reverse, 0))(toArgValue)._1
 
     new HListContainer(argAndValues map parse)
   }
 
 }
 
-object toArgValue extends Poly1 {
-  implicit val caseString : Case.Aux[StringArg,ArgAndValue[String]] =
-    at(arg => ArgAndValue(arg, Some("a string")))
-  implicit val caseInt : Case.Aux[IntArg,ArgAndValue[Int]] =
-    at(arg => ArgAndValue(arg, Some("1")))
+// thanks to https://stackoverflow.com/questions/26631231/how-to-transform-an-hlist-to-another-hlist-with-foldright-foldleft
+object toArgValue extends Poly2 {
+  implicit def caseString[B <: HList] : Case.Aux[
+    StringArg,
+    (B, List[String], Int),
+    (ArgAndValue[String] :: B, List[String], Int)
+    ] = at[StringArg, (B, List[String], Int)] {
+      case (arg, (values, list, index)) => (ArgAndValue(arg, Some(list(index))) :: values, list, index + 1)
+  }
+
+  implicit def caseInt[B <: HList] : Case.Aux[
+    IntArg,
+    (B, List[String], Int),
+    (ArgAndValue[Int] :: B, List[String], Int)
+    ] = at[IntArg, (B, List[String], Int)] {
+    case (arg, (values, list, index)) => (ArgAndValue(arg, Some(list(index))) :: values, list, index + 1)
+  }
+
+//  implicit def caseDef[A, B <: HList] : Case.Aux[
+//    Arg[A],
+//    (B, List[String], Int),
+//    (ArgAndValue[A] :: B, List[String], Int)
+//    ] = at[Arg[A], (B, List[String], Int)] {
+//    case (arg, (values, list, index)) => (ArgAndValue(arg, Some(list(index))) :: values, list, index + 1)
+//  }
+
 }
 
 object parse extends Poly1 {
