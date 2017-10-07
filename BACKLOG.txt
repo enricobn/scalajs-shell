@@ -18,7 +18,6 @@ NEXT
 
   But pay attention: the commands expect the full path.
 
-- use VirtualCommandArguments in commands (cd, cat, ls)
 - VirtualCommandArgument.complete must return an information to know if there is one precise match.
   For example if the argument is a file then it's an existent file, in that case and if there are more
   mandatory arguments, then I add a space to the result, so the user can digit the next arg.
@@ -31,9 +30,11 @@ NEXT
   and I digit "cat ware" then tab, the command line must be "cd warehouse".
 - use shapeless to make a type safe parser for command's arguments (look at TestingShapeless)
   there's a problem I think with Intellij, look at TODO
+- ls accept a folder || file pattern
 
 DONE
 -----
+- use VirtualCommandArguments in LsCommand
 - use VirtualCommandArguments in CatCommand
 - implement completion for FileArgument and FolderArgument
 - use VirtualCommandArguments in CdCommand
