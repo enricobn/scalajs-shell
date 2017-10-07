@@ -12,8 +12,9 @@ object TestingShapeless {
     val string = parsed.get(_0)
     val int = parsed.get(_1)
 
-    println(string)
-    println(int)
+    // TODO string and int are not Option for the IDE (Intellij), so .get is red, but it compiles and runs fine!
+    println(string.get.toUpperCase)
+    println(int.get + 1)
   }
 
   // Thanks to https://stackoverflow.com/questions/35535543/getting-elements-from-an-hlist

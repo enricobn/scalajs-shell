@@ -29,6 +29,8 @@ NEXT
   warehouse2
 
   and I digit "cat ware" then tab, the command line must be "cd warehouse".
+- use shapeless to make a type safe parser for command's arguments (look at TestingShapeless)
+  there's a problem I think with Intellij, look at TODO
 
 DONE
 -----
