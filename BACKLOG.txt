@@ -34,5 +34,6 @@ NEXT
 
 DONE
 -----
+- use VirtualCommandArguments in CatCommand
 - implement completion for FileArgument and FolderArgument
 - use VirtualCommandArguments in CdCommand

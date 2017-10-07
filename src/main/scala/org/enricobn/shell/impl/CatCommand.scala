@@ -2,7 +2,7 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.{RunContext, ShellInput, ShellOutput, VirtualCommand}
 import org.enricobn.vfs.IOError._
-import org.enricobn.vfs.VirtualFolder
+import org.enricobn.vfs.{IOError, VirtualFile, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -11,42 +11,31 @@ import scala.scalajs.js.annotation.JSExport
   */
 @JSExport(name = "CatCommand")
 class CatCommand extends VirtualCommand {
+  private val arguments = new VirtualCommandArguments(
+    FileArgument("file", true)
+  )
+
   override def getName: String = "cat"
 
   override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)  = {
-    if (args.isEmpty) {
-      "cat: illegal argument".ioErrorE
-    } else {
-      val currentFolder: VirtualFolder = shell.currentFolder
-      currentFolder.findFile(args(0)) match {
-        case Left(error) => error.message.ioErrorE
-        case Right(Some(file)) =>
-          file.content match {
-            case Left(error) => error.message.ioErrorE
-            case Right(c) =>
-              Right({
-                shellOutput.write(c.toString)
-                shellOutput.write(VirtualShell.CRLF)
-                shellOutput.flush()
-                new RunContext()
-              })
-          }
-        case _ => s"cat: ${args(0)}: No such file or directory".ioErrorE
-      }
+    arguments.parse(shell.currentFolder, getName, args:_*) match {
+      case Left(error) => Left(IOError(error))
+      case Right(Seq(file: VirtualFile)) =>
+        file.content match {
+          case Left(error) => error.message.ioErrorE
+          case Right(c) =>
+            Right({
+              shellOutput.write(c.toString)
+              shellOutput.write(VirtualShell.CRLF)
+              shellOutput.flush()
+              new RunContext()
+            })
+        }
+      case _ => "cat: illegal argument".ioErrorE
     }
   }
 
-  override def completion(line: String, currentFolder: VirtualFolder): Seq[String] = {
-    val parsedLine = new CommandLine(line)
-    val start = parsedLine.lastArgument.getOrElse("")
+  override def completion(line: String, currentFolder: VirtualFolder): Seq[String] =
+    arguments.complete(currentFolder, line)
 
-    currentFolder.files match {
-      case Left(error) => Seq.empty // TODO error
-      case Right(fs) =>
-        fs
-          .map(_.name)
-          .filter(_.startsWith(start))
-          .toSeq
-    }
-  }
 }
