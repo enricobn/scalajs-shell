@@ -18,14 +18,4 @@ trait VirtualCommand {
 
   override def toString: String = "[executable file]"
 
-  def contentAs[T](file: VirtualFile, clazz: Class[T]) : Either[IOError, T] =
-    file.content match {
-      case Left(error) => Left(error)
-      case Right(content) =>
-        if (clazz.isAssignableFrom(content.getClass)) {
-          Right(content.asInstanceOf[T])
-        } else {
-          s"Wrong type: ${content.getClass.getSimpleName}".ioErrorE
-        }
-    }
 }

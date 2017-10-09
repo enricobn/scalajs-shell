@@ -132,6 +132,10 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     terminal.onInput(inputHandler)
   }
 
+  def stop(): Unit = {
+    terminal.removeOnInputs()
+  }
+
   def startWithCommand(command: String, args: String*): Unit = {
     inputHandler = new InputHandler()
     terminal.onInput(inputHandler)
