@@ -24,7 +24,7 @@ trait VirtualCommandArgument[+T] {
 // the filter will be applied to /usr/bin, /usr/bin/dummy and /usr/bin/dummy1, but not to /usr.
 // I think it depends on the command, so it's not very useful to handle the filter here.
 case class FolderArgument(override val name: String, override val required: Boolean,
-                          filter: Option[VirtualFolder => Boolean] = None)
+                          filter: VirtualFolder => Boolean = _ => true)
   extends VirtualCommandArgument[VirtualFolder] {
 
   override def parse(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Either[String, VirtualFolder] = {
@@ -32,7 +32,7 @@ case class FolderArgument(override val name: String, override val required: Bool
       case Left(error) => Left(error.message)
       case Right(folder) => folder match {
         case Some(f) =>
-          if (filter.isEmpty || filter.get.apply(f))
+          if (filter.apply(f))
             Right(f)
           else
             Left(s"$name: $value: no such directory")
@@ -46,18 +46,14 @@ case class FolderArgument(override val name: String, override val required: Bool
         case UnknownPath() => Seq.empty
         case partialPath: PartialPath =>
 
-          if (filter.isDefined && !filter.get.apply(partialPath.folder)) {
+          if (!filter.apply(partialPath.folder)) {
             return Seq.empty
           }
 
           partialPath.folder.folders match {
             case Left(_) => Seq.empty
             case Right(allFolders) =>
-              var folders =
-                filter match {
-                  case Some(f) => allFolders.filter(f)
-                  case _ => allFolders
-                }
+              var folders = allFolders.filter(filter)
               if (partialPath.remaining.isDefined) {
                 folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
               }
@@ -70,7 +66,7 @@ case class FolderArgument(override val name: String, override val required: Bool
 }
 
 case class FileArgument(override val name: String, override val required: Boolean,
-                        filter: Option[VirtualFile => Boolean] = None)
+                        filter: VirtualFile => Boolean = _ => true)
   extends VirtualCommandArgument[VirtualFile] {
 
   override def parse(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Either[String, VirtualFile] = {
@@ -79,7 +75,7 @@ case class FileArgument(override val name: String, override val required: Boolea
     path.findFile(currentFolder) match {
       case Left(error) => Left(error.message)
       case Right(Some(file)) =>
-        if (filter.isEmpty || filter.get.apply(file))
+        if (filter.apply(file))
           Right(file)
         else
           Left(s"$name: $value: no such file")
@@ -95,10 +91,7 @@ case class FileArgument(override val name: String, override val required: Boolea
           folder.files match {
             case Left(_) => Seq.empty
             case Right(fx) =>
-              filter match {
-                case Some(f) => fx.filter(f)
-                case _ => fx
-              }
+              fx.filter(filter)
           }
 
         val folders =

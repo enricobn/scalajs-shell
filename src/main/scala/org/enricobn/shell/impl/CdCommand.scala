@@ -13,7 +13,7 @@ import scala.scalajs.js.annotation.JSExport
 class CdCommand extends VirtualCommand {
 
   private val arguments = new VirtualCommandArguments(
-    FolderArgument("folder", false, Some(_.getCurrentUserPermission.execute))
+    FolderArgument("folder", false, _.getCurrentUserPermission.execute)
   )
 
   override def getName: String = "cd"
