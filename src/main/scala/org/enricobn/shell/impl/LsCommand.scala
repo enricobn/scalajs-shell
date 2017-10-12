@@ -1,6 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{RunContext, ShellInput, ShellOutput, VirtualCommand}
+import org.enricobn.terminal.TerminalColors
 import org.enricobn.vfs._
 import org.enricobn.vfs.IOError._
 
@@ -52,7 +53,16 @@ class LsCommand extends VirtualCommand {
   }
 
   private def print(out: ShellOutput, node: VirtualNode) {
-    out.write(getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  " + node.name + VirtualShell.CRLF)
+    out.write(getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  ")
+
+    if (node.isInstanceOf[VirtualFolder]) {
+      val colored = new TerminalColors()
+      colored.blue.add(node.name).end
+      println(colored)
+      out.write(colored + " " + VirtualShell.CRLF)
+    } else {
+      out.write(node.name + VirtualShell.CRLF)
+    }
     out.flush()
   }
 
