@@ -52,7 +52,7 @@ class LsCommand extends VirtualCommand {
   }
 
   private def print(out: ShellOutput, node: VirtualNode) {
-    out.write(node.name + "\t\t" + node.owner + "\t\t" + getAttributes(node) + VirtualShell.CRLF)
+    out.write(getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  " + node.name + VirtualShell.CRLF)
     out.flush()
   }
 
