@@ -40,6 +40,8 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
 
   def currentFolder: VirtualFolder = _currentFolder
 
+  def homeFolder: Either[IOError, Option[VirtualFolder]] = currentFolder.root.resolveFolder(s"/home/${vum.currentUser}")
+
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
     // TODO simplify
     context.findCommand(command, currentFolder)
