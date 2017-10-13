@@ -58,7 +58,6 @@ class LsCommand extends VirtualCommand {
     if (node.isInstanceOf[VirtualFolder]) {
       val colored = new TerminalColors()
       colored.blue.add(node.name).end
-      println(colored)
       out.write(colored + " " + VirtualShell.CRLF)
     } else {
       out.write(node.name + VirtualShell.CRLF)
