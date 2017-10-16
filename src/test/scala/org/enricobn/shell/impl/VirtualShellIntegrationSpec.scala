@@ -3,7 +3,7 @@ package org.enricobn.shell.impl
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.VirtualUsersManagerImpl
 import org.enricobn.vfs.inmemory.InMemoryFS
-import org.enricobn.vfs.{IOError, VirtualFolder}
+import org.enricobn.vfs._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -26,20 +26,23 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     var currentFolder: VirtualFolder = fs.root
 
-    val bin = currentFolder.mkdir("bin").right.get
+    val _rootFile = currentFolder.touch("rootFile").right.get
+    val _bin = currentFolder.mkdir("bin").right.get
 
-    val usr = currentFolder.mkdir("usr").right.get
-    val usrBin = usr.mkdir("bin").right.get
+    val _usr = currentFolder.mkdir("usr").right.get
+    val _usrFile = _usr.touch("usrFile").right.get
+    val usrBin = _usr.mkdir("bin").right.get
     currentFolder = currentFolder.mkdir("home").right.get
     currentFolder = currentFolder.mkdir("guest").right.get
     val text = currentFolder.touch("text.txt").right.get
     text.chmod(666)
+    val _binFile = usrBin.touch("binFile").right.get
 
     val context = new VirtualShellContextImpl()
-    context.createCommandFile(bin, new LsCommand())
-    context.createCommandFile(bin, new CdCommand())
-    context.createCommandFile(bin, new CatCommand())
-    context.addToPath(bin)
+    context.createCommandFile(_bin, new LsCommand())
+    context.createCommandFile(_bin, new CdCommand())
+    context.createCommandFile(_bin, new CatCommand())
+    context.addToPath(_bin)
     context.addToPath(usrBin)
     val virtualShell = new VirtualShell(term, vum, context, currentFolder)
 
@@ -57,6 +60,12 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       val terminal = term
       val textFile = text
       val virtualUsersManager = vum
+      val root = fs.root
+      val bin = usrBin
+      val binFile = _binFile
+      val usr = _usr
+      val rootFile = _rootFile
+      val usrFile = _usrFile
     }
   }
 
@@ -89,10 +98,15 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       message: String => message.contains("usr") && message.contains("rwx rwx r-x")
     })
 
+    (f.terminal.add _).expects(where {
+      message: String => message.contains("rootFile") && message.contains("rw- rw- r--")
+    })
+
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
     assertPrompt(f.shell.run("cd", "/"))
 
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
+
     assertPrompt(
       f.shell.run("ls")
     )
@@ -122,6 +136,146 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       f.shell.run("text.txt"),
       "File is not a command."
     )
+  }
+
+  "toFolder of root" should "be root" in {
+    val f = fixture
+
+    val folder = f.shell.toFolder("/")
+
+    assert(folder.right.get == f.root)
+  }
+
+  "toFolder of absolute path" should "work" in {
+    val f = fixture
+
+    val folder = f.shell.toFolder("/usr/bin")
+
+    assert(folder.right.get == f.bin)
+  }
+
+  "toFolder of relative path" should "work" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.usr
+
+    val folder = f.shell.toFolder("bin")
+
+    assert(folder.right.get == f.bin)
+  }
+
+  "toFolder of parent path" should "work" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.bin
+
+    val folder = f.shell.toFolder("../bin")
+
+    assert(folder.right.get == f.bin)
+  }
+
+  "toFolder of self" should "work" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.usr
+
+    val folder = f.shell.toFolder("./bin")
+
+    assert(folder.right.get == f.bin)
+  }
+
+  "findFolder of not existent folder" should "return Right(None)" in {
+    val f = fixture
+
+    val folder = f.shell.findFolder("home/enrico")
+
+    assert(folder.right.get.isEmpty)
+  }
+
+  "toFile of absolute path" should "work" in {
+    val f = fixture
+
+    val file = f.shell.toFile("/usr/bin/binFile")
+
+    assert(f.binFile == file.right.get)
+  }
+
+  "toFile of root file" should "work" in {
+    val f = fixture
+
+    val file = f.shell.toFile("/rootFile")
+
+    assert(f.rootFile == file.right.get)
+  }
+
+  "toFile of relative path" should "work" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.bin
+
+    val file = f.shell.toFile("../usrFile")
+
+    assert(f.usrFile == file.right.get)
+  }
+
+  "findFile of parent of root" should "return Right(None)" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.root
+
+    val file = f.shell.findFile("..")
+
+    assert(Right(None) == file)
+  }
+
+  "findFile of parent of parent of root" should "return Right(None)" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.root
+
+    val file = f.shell.findFile("../..")
+
+    assert(Right(None) == file)
+  }
+
+  "findFolder of ../.. of usr" should "return Right(None)" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.usr
+
+    val file = f.shell.findFolder("../..")
+
+    assert(Right(None) == file)
+  }
+
+  "findFolder of ../.. of bin" should "return root" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.bin
+
+    val folder = f.shell.findFolder("../..")
+
+    assert(Right(Some(f.root)) == folder)
+  }
+
+  "findFile of ../../usr/bin/binFile from bin" should "return binFile" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.bin
+
+    val file = f.shell.findFile("../../usr/bin/binFile")
+
+    assert(Right(Some(f.binFile)) == file)
+  }
+
+  "find of ../..." should "not work, but don't throw an Exception" in {
+    val f = fixture
+
+    f.shell.currentFolder = f.bin
+
+    val file = f.shell.findFile("../.../")
+
+    assert(Right(None) == file)
   }
 
   private def assertPrompt(result: Either[IOError, Boolean], expectedPrompt : Boolean = true): Unit = {

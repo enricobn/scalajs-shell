@@ -1,7 +1,8 @@
 package org.enricobn.shell.impl
 
-import scala.language.reflectiveCalls
+import org.enricobn.terminal.Terminal
 
+import scala.language.reflectiveCalls
 import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualUsersManager}
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.scalatest.MockFactory
@@ -23,6 +24,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
       val rootFile : VirtualFile = fs.root.touch("rootFile").right.get
       val usrFile : VirtualFile = usr.touch("usrFile").right.get
       val binFile : VirtualFile = bin.touch("binFile").right.get
+      val shell = new VirtualShell(stub[Terminal], vum, new VirtualShellContextImpl(), bin)
     }
     (f.usersManager.currentUser _).when().returns("foo")
     f
@@ -32,7 +34,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     val f = fixture
 
     val sut = FileArgument("file", true)
-    val completions = sut.complete(f.bin, "/", Seq.empty)
+    val completions = sut.complete(f.shell, "/", Seq.empty)
 
     assert(completions == List("/rootFile", "/usr/"))
   }
@@ -41,7 +43,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     val f = fixture
 
     val sut = FileArgument("file", true)
-    val parsedArguments = sut.parse(f.bin, "/rootFile", Seq.empty)
+    val parsedArguments = sut.parse(f.shell, "/rootFile", Seq.empty)
 
     assert(parsedArguments.right.get == f.rootFile)
   }
@@ -50,7 +52,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     val f = fixture
 
     val sut = FolderArgument("folder", true)
-    val parsedArguments = sut.parse(f.bin, "/", Seq.empty)
+    val parsedArguments = sut.parse(f.shell, "/", Seq.empty)
 
     assert(parsedArguments.right.get == f.fs.root)
   }
@@ -60,7 +62,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
 
     val sut = new VirtualCommandArguments(FileArgument("file", true))
 
-    val completions = sut.complete(f.bin, "command / ")
+    val completions = sut.complete(f.shell, "command / ")
 
     assert(completions == Seq.empty)
   }
@@ -70,7 +72,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
 
     val sut = new VirtualCommandArguments(FileArgument("file", true))
 
-    val parsedArguments = sut.parse(f.bin, "cd")
+    val parsedArguments = sut.parse(f.shell, "cd")
 
     assert(parsedArguments.isLeft)
 
@@ -82,7 +84,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
 
     val sut = new VirtualCommandArguments(FileArgument("file", false))
 
-    val parsedArguments = sut.parse(f.bin, "cd")
+    val parsedArguments = sut.parse(f.shell, "cd")
 
     assert(parsedArguments.right.get.isEmpty)
   }

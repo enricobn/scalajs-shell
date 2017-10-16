@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{CompletionPath, PartialPath, UnknownPath}
-import org.enricobn.vfs.{VirtualFS, VirtualFile, VirtualFolder, VirtualPath}
+import org.enricobn.vfs.{VirtualFS, VirtualFile, VirtualFolder}
 
 import scala.collection.mutable.ListBuffer
 
@@ -11,8 +11,8 @@ import scala.collection.mutable.ListBuffer
 trait VirtualCommandArgument[+T] {
   val required: Boolean
   val name: String
-  def parse(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]) : Either[String, T]
-  def complete(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]) : Seq[String]
+  def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, T]
+  def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String]
 }
 
 // TODO the filter is applied only to the parent folder and the result folders.
@@ -27,8 +27,8 @@ case class FolderArgument(override val name: String, override val required: Bool
                           filter: VirtualFolder => Boolean = _ => true)
   extends VirtualCommandArgument[VirtualFolder] {
 
-  override def parse(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Either[String, VirtualFolder] = {
-    currentFolder.resolveFolder(value) match {
+  override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, VirtualFolder] = {
+    shell.findFolder(value) match {
       case Left(error) => Left(error.message)
       case Right(folder) => folder match {
         case Some(f) =>
@@ -41,8 +41,8 @@ case class FolderArgument(override val name: String, override val required: Bool
     }
   }
 
-  override def complete(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Seq[String] =
-      CompletionPath(currentFolder, value) match {
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+      CompletionPath(shell, value) match {
         case UnknownPath() => Seq.empty
         case partialPath: PartialPath =>
 
@@ -69,10 +69,8 @@ case class FileArgument(override val name: String, override val required: Boolea
                         filter: VirtualFile => Boolean = _ => true)
   extends VirtualCommandArgument[VirtualFile] {
 
-  override def parse(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Either[String, VirtualFile] = {
-    val path = VirtualPath.apply(value)
-
-    path.findFile(currentFolder) match {
+  override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, VirtualFile] = {
+    shell.findFile(value) match {
       case Left(error) => Left(error.message)
       case Right(Some(file)) =>
         if (filter.apply(file))
@@ -83,8 +81,8 @@ case class FileArgument(override val name: String, override val required: Boolea
     }
   }
 
-  override def complete(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Seq[String] =
-    CompletionPath(currentFolder, value) match {
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+    CompletionPath(shell, value) match {
       case UnknownPath() => Seq.empty
       case PartialPath(folder, relativePath, remaining) =>
         val files =
@@ -115,22 +113,22 @@ case class FileArgument(override val name: String, override val required: Boolea
 
 case class IntArgument(override val name: String, override val required: Boolean) extends VirtualCommandArgument[Int] {
 
-  override def parse(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Either[String, Int] =
+  override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, Int] =
     try {
       Right(value.toInt)
     } catch  {
       case _ : NumberFormatException => Left(s"$name: invalid number.")
     }
 
-  override def complete(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Seq[String] = Seq.empty
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = Seq.empty
 
 }
 
 case class StringArgument(override val name: String, override val required: Boolean) extends VirtualCommandArgument[String] {
-  override def parse(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Either[String, String] =
+  override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, String] =
     Right(value)
 
-  override def complete(currentFolder: VirtualFolder, value: String, previousArguments: Seq[Any]): Seq[String] = Seq.empty
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = Seq.empty
 
 }
 
@@ -147,31 +145,31 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
     }
   })
 
-  def parse(currentFolder: VirtualFolder, commandName: String, commandArgs: String*) : Either[String, Seq[Any]] = {
+  def parse(shell: VirtualShell, commandName: String, commandArgs: String*) : Either[String, Seq[Any]] = {
     if (commandArgs.length < args.count(_.required)) {
       Left("usage: " + commandName + " " + args.foldLeft("")(_ + _.name + " "))
     } else {
-      parseInternal(currentFolder, commandArgs.toSeq)
+      parseInternal(shell, commandArgs.toSeq)
     }
   }
 
-  def complete(currentFolder: VirtualFolder, line: String) : Seq[String] = {
+  def complete(shell: VirtualShell, line: String) : Seq[String] = {
     val parsedLine = new CommandLine(line)
 
     val proposals =
       if (parsedLine.args.isEmpty) {
-        args.head.complete(currentFolder, "", List.empty)
+        args.head.complete(shell, "", List.empty)
       } else if (parsedLine.incompleteArgument) {
-        parseInternal(currentFolder, parsedLine.argsButLast) match {
+        parseInternal(shell, parsedLine.argsButLast) match {
           case Left(_) => Seq.empty
           case Right(result) =>
             args(parsedLine.args.length - 1)
-              .complete(currentFolder, parsedLine.lastArgument.get, result)
+                          .complete(shell, parsedLine.lastArgument.get, result)
         }
       } else {
-        parseInternal(currentFolder, parsedLine.args) match {
+        parseInternal(shell, parsedLine.args) match {
           case Left(_) => Seq.empty
-          case Right(parsedArguments) => args(parsedLine.args.length).complete(currentFolder, "", parsedArguments)
+          case Right(parsedArguments) => args(parsedLine.args.length).complete(shell, "", parsedArguments)
         }
       }
 
@@ -188,13 +186,13 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
 //    }
   }
 
-  private def parseInternal(currentFolder: VirtualFolder, lineArgs: Seq[String]) : Either[String, Seq[Any]] = {
+  private def parseInternal(shell: VirtualShell, lineArgs: Seq[String]) : Either[String, Seq[Any]] = {
     val result = new ListBuffer[Any]
     val zipped = lineArgs
       .zip(args)
 
     for (pair <- zipped) {
-      pair._2.parse(currentFolder, pair._1, result) match {
+      pair._2.parse(shell, pair._1, result) match {
         case Left(message) => return Left(message)
         case Right(value) => result += value
       }

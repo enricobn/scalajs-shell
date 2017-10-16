@@ -1,17 +1,18 @@
 package org.enricobn.shell
 
+import org.enricobn.shell.impl.VirtualShell
 import org.enricobn.vfs.{VirtualFS, VirtualFolder}
 /**
   * Created by enrico on 12/14/16.
   */
 object CompletionPath {
 
-  def apply(currentFolder: VirtualFolder, prefix: String): CompletionPath = {
+  def apply(shell: VirtualShell, prefix: String): CompletionPath = {
     val lastSlash = prefix.lastIndexOf('/')
 
     val tmpResult =
       if (lastSlash < 0) {
-        PartialPath(currentFolder, "", Some(prefix))
+        PartialPath(shell.currentFolder, "", Some(prefix))
       } else {
         val remaining =
           if (lastSlash == prefix.length -1) {
@@ -21,10 +22,10 @@ object CompletionPath {
           }
 
         if (lastSlash == 0) {
-          PartialPath(currentFolder.root, "/", remaining)
+          PartialPath(shell.currentFolder.root, "/", remaining)
         } else {
           val parent = prefix.substring(0, lastSlash)
-          currentFolder.resolveFolder(parent) match {
+          shell.findFolder(parent) match {
             case Left(_) => new UnknownPath
             case Right(Some(folder)) =>
               PartialPath(folder, prefix.substring(0, lastSlash) + VirtualFS.pathSeparator, remaining)

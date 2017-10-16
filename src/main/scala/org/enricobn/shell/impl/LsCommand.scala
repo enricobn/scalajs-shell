@@ -32,7 +32,7 @@ class LsCommand extends VirtualCommand {
   def getName: String = "ls"
 
   override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) = {
-    val errorOrFolder = arguments.parse(shell.currentFolder, getName, args: _*) match {
+    val errorOrFolder = arguments.parse(shell, getName, args: _*) match {
       case Left(error) => Left(IOError(error))
       case Right(Seq(folder: VirtualFolder)) => Right(folder)
       case Right(Seq()) => Right(shell.currentFolder)
@@ -53,19 +53,20 @@ class LsCommand extends VirtualCommand {
   }
 
   private def print(out: ShellOutput, node: VirtualNode) {
-    out.write(getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  ")
+    var s = getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  "
 
     if (node.isInstanceOf[VirtualFolder]) {
       val colored = new TerminalColors()
       colored.blue.add(node.name).end
-      out.write(colored + " " + VirtualShell.CRLF)
+      s += (colored + " ")
     } else {
-      out.write(node.name + VirtualShell.CRLF)
+      s += node.name
     }
+    out.write(s + VirtualShell.CRLF)
     out.flush()
   }
 
-  override def completion(line: String, currentFolder: VirtualFolder): Seq[String] = {
-    arguments.complete(currentFolder, line)
+  override def completion(line: String, shell: VirtualShell): Seq[String] = {
+    arguments.complete(shell, line)
   }
 }

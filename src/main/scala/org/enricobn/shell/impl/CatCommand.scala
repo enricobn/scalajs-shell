@@ -18,7 +18,7 @@ class CatCommand extends VirtualCommand {
   override def getName: String = "cat"
 
   override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)  = {
-    val errorOrFile = arguments.parse(shell.currentFolder, getName, args: _*) match {
+    val errorOrFile = arguments.parse(shell, getName, args: _*) match {
       case Left(error) => Left(IOError(error))
       case Right(Seq(file: VirtualFile)) => Right(file)
       case _ => "cat: illegal argument".ioErrorE
@@ -40,7 +40,7 @@ class CatCommand extends VirtualCommand {
     }
   }
 
-  override def completion(line: String, currentFolder: VirtualFolder): Seq[String] =
-    arguments.complete(currentFolder, line)
+  override def completion(line: String, shell: VirtualShell): Seq[String] =
+    arguments.complete(shell, line)
 
 }

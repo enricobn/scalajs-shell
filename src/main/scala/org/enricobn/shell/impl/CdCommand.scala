@@ -25,7 +25,7 @@ class CdCommand extends VirtualCommand {
       else
         args(0)
 
-    shell.currentFolder.resolveFolder(folder) match {
+    shell.findFolder(folder) match {
       case Left(error) => error.message.ioErrorE
       case Right(fO) => fO match {
         case Some(f) => Right({
@@ -37,8 +37,8 @@ class CdCommand extends VirtualCommand {
     }
   }
 
-  override def completion(line: String, currentFolder: VirtualFolder): Seq[String] = {
-    arguments.complete(currentFolder, line)
+  override def completion(line: String, shell: VirtualShell): Seq[String] = {
+    arguments.complete(shell, line)
   }
 
 }

@@ -40,7 +40,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
 
   def currentFolder: VirtualFolder = _currentFolder
 
-  def homeFolder: Either[IOError, Option[VirtualFolder]] = currentFolder.root.resolveFolder(s"/home/${vum.currentUser}")
+  def homeFolder: Either[IOError, Option[VirtualFolder]] = currentFolder.resolveFolder(s"/home/${vum.currentUser}")
 
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
     // TODO simplify
@@ -153,6 +153,75 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     }
   }
 
+  /**
+    * @return Right(Some(folder)) if the folder exists, Right(None) if the folder or the path do not exist,
+    *         Left(error) if an error occurred.
+    */
+  def findFolder(path: String): Either[IOError,Option[VirtualFolder]] = {
+    val virtualPath = VirtualPath(path)
+    val first: Either[IOError, Option[VirtualFolder]] =
+      virtualPath.fragments.head match {
+        case RootFragment() => Right(Some(currentFolder.root))
+        case _ => Right(Some(currentFolder))
+      }
+
+    val fragmentsToProcess =
+      virtualPath.fragments.head match {
+        case RootFragment() => virtualPath.fragments.tail
+        case _ => virtualPath.fragments
+      }
+
+    fragmentsToProcess.foldLeft(first)((actualFolderE, fragment) =>
+      actualFolderE match {
+        case Right(Some(actualFolder)) =>
+          fragment match {
+            case SelfFragment() => Right(Some(actualFolder))
+            case ParentFragment() => Right(actualFolder.parent)
+            case simple: SimpleFragment => actualFolder.findFolder(simple.name)
+            case _ => Left(IOError(s"Invalid path: '$path'"))
+          }
+        case n@Right(None) => n
+        case error => error
+      })
+  }
+
+  /**
+    * @return a Left(error) if the folder or the path does not exist; if you want to check that, use
+    * [[VirtualShell.findFolder]] instead.
+    */
+  def toFolder(path: String): Either[IOError,VirtualFolder] =
+    findFolder(path) match {
+      case Right(Some(folder)) => Right(folder)
+      case Right(None) => Left(IOError(s"Cannot resolve path '$path' from '$currentFolder'."))
+      case Left(error) => Left(error)
+    }
+  /**
+    * @return a Left(error) if the file or the path does not exist; if you want to check that, use
+    * [[VirtualShell.findFile]] instead.
+    */
+  def toFile(path: String): Either[IOError,VirtualFile] =
+    findFile(path) match {
+      case Right(Some(file)) => Right(file)
+      case Right(None) => Left(IOError(s"Cannot resolve file '$path' from '$currentFolder'"))
+      case Left(error) => Left(error)
+    }
+
+  /**
+    * @return Right(Some(file)) if the file exists, Right(None) if the file or the path do not exist,
+    *         Left(error) if an error occurred.
+    */
+  def findFile(path: String): Either[IOError,Option[VirtualFile]] = {
+    val virtualPath = VirtualPath(path)
+    if (virtualPath.parentFragments.isEmpty)
+      currentFolder.findFile(virtualPath.name)
+    else
+      findFolder(virtualPath.parentFragments.get.path) match {
+        case Right(Some(folder)) => folder.findFile(virtualPath.name)
+        case Right(None) => Right(None)
+        case Left(error) => Left(error)
+      }
+  }
+
   private def prompt() {
 //    val prompt = new ShellColors()
 //        .yellow(vum.currentUser + ":")
@@ -214,7 +283,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   }
 
   private def handleCompletion() : Unit = {
-    completions.complete(line, currentFolder) match {
+    completions.complete(line, this) match {
       case NewLine(newLine) =>
         eraseToPrompt()
         line = newLine

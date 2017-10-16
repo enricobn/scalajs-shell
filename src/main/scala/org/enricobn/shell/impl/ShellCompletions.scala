@@ -14,7 +14,7 @@ final case class NoProposals() extends CompletionResult
 
 class ShellCompletions(context: VirtualShellContext) {
 
-  def complete(line: String, currentFolder: VirtualFolder): CompletionResult = {
+  def complete(line: String, shell: VirtualShell): CompletionResult = {
     val parsedLine = new CommandLine(line)
 
     if (parsedLine.invalidCommand)
@@ -29,9 +29,9 @@ class ShellCompletions(context: VirtualShellContext) {
           .map(_.name).toList
       } else {
         val fromCommand = for {
-            file <- context.findCommand(parsedLine.commandName, currentFolder)
+            file <- context.findCommand(parsedLine.commandName, shell.currentFolder)
             command <- context.getCommand(file).right.toOption
-          } yield command.completion(line, currentFolder)
+          } yield command.completion(line, shell)
 
         fromCommand.getOrElse(Seq.empty)
       }

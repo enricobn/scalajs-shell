@@ -16,6 +16,7 @@ class VirtualShellContextImpl extends VirtualShellContext {
     path += folder
   }
 
+  // TODO I don't like it here, has nothing to do with context!
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand): Either[IOError, VirtualFile] = {
     for {
       file <- folder.touch(command.getName).right
@@ -26,6 +27,7 @@ class VirtualShellContextImpl extends VirtualShellContext {
     }
   }
 
+  // TODO I don't like it here, has nothing to do with context!
   def getCommand(file: VirtualFile): Either[IOError, VirtualCommand] =
     file.content match {
       case Left(error) => Left(error)
@@ -33,6 +35,8 @@ class VirtualShellContextImpl extends VirtualShellContext {
       case _ => "File is not a command.".ioErrorE
     }
 
+  // TODO I don't like it here, has something about context, but I think its better to let context hold only
+  // the state.
   def findCommand(command: String, currentFolder: VirtualFolder) : Option[VirtualFile] = {
     val first: Option[VirtualFile] = path
       .map(folder => {

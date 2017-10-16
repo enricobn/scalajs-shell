@@ -1,7 +1,9 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell._
-import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualPermission}
+import org.enricobn.terminal.Terminal
+import org.enricobn.vfs.inmemory.{InMemoryFS, InMemoryFolder}
+import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualPermission, VirtualUsersManager}
 import org.scalamock.matchers.ArgThat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
@@ -13,10 +15,22 @@ import scala.language.reflectiveCalls
   * Created by enrico on 12/15/16.
   */
 class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
+  val _vum = stub[VirtualUsersManager]
+  (_vum.checkWriteAccess _).when(*).returns(true)
+  (_vum.checkReadAccess _).when(*).returns(true)
+  (_vum.checkExecuteAccess _).when(*).returns(true)
+
+  val fs = new InMemoryFS(_vum)
+  val bin = fs.root.mkdir("bin").right.get
+  val home = fs.root.mkdir("home").right.get
+  val guest = home.mkdir("guest").right.get
+
   def fixture = {
     new {
       val context = stub[VirtualShellContext]
       val completions = new ShellCompletions(context)
+      val currentFolder: InMemoryFolder = guest
+      val shell = new VirtualShell(stub[Terminal], _vum, new VirtualShellContextImpl(), currentFolder)
     }
   }
 
@@ -24,7 +38,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     val f = fixture
     val currentFolder = stub[VirtualFolder]
 
-    val result = f.completions.complete("", currentFolder)
+    val result = f.completions.complete("", f.shell)
     result match {
       case NoProposals() =>
       case _ => fail(result.toString)
@@ -39,7 +53,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     stubPath(f.context, Set(cat, ls))
 
-    val result = f.completions.complete("c", currentFolder)
+    val result = f.completions.complete("c", f.shell)
 
     result match {
       case NewLine(line) => assert(line == "cat ")
@@ -54,7 +68,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     stubPath(f.context, Set(ls))
 
-    val result = f.completions.complete("c", currentFolder)
+    val result = f.completions.complete("c", f.shell)
     result match {
       case NoProposals() =>
       case _ => fail(result.toString)
@@ -69,7 +83,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     stubPath(f.context, Set(cat, ls))
 
-    val result = f.completions.complete("c", currentFolder)
+    val result = f.completions.complete("c", f.shell)
     result match {
       case Proposals(props) => assert(props == Seq("cat", "cd"))
       case _ => fail(result.toString)
@@ -80,12 +94,12 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     val f = fixture
     val currentFolder = stub[VirtualFolder]
     val catCommand = stub[VirtualCommand]
-    (catCommand.completion _).when("cat ", sameRef(currentFolder)).returns(Seq("hello", "world"))
+    (catCommand.completion _).when("cat ", sameRef(f.shell)).returns(Seq("hello", "world"))
     val cat = stubCommandFile(f.context, "cat", catCommand)
 
     stubPath(f.context, Set(cat))
 
-    val result = f.completions.complete("cat ", currentFolder)
+    val result = f.completions.complete("cat ", f.shell)
     result match {
       case Proposals(props) => assert(props == Seq("hello", "world"))
       case _ => fail(result.toString)
