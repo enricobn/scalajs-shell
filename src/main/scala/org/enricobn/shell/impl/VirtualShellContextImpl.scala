@@ -19,7 +19,7 @@ class VirtualShellContextImpl extends VirtualShellContext {
   // TODO I don't like it here, has nothing to do with context!
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand): Either[IOError, VirtualFile] = {
     for {
-      file <- folder.touch(command.getName).right
+      file <- folder.touch(command.name).right
       _ <- file.setExecutable().toLeft(None).right
       _ <- (file.content = command).toLeft(None).right
     } yield {

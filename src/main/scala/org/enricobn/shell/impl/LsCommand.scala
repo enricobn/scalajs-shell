@@ -29,10 +29,11 @@ class LsCommand extends VirtualCommand {
     FolderArgument("folder", false)
   )
 
-  def getName: String = "ls"
+  def name: String = "ls"
 
-  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) = {
-    val errorOrFolder = arguments.parse(shell, getName, args: _*) match {
+  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)
+  : Either[IOError, RunContext] = {
+    val errorOrFolder = arguments.parse(shell, name, args: _*) match {
       case Left(error) => Left(IOError(error))
       case Right(Seq(folder: VirtualFolder)) => Right(folder)
       case Right(Seq()) => Right(shell.currentFolder)

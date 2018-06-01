@@ -2,7 +2,7 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell._
 import org.enricobn.vfs.IOError._
-import org.enricobn.vfs.{VirtualFile, VirtualFolder}
+import org.enricobn.vfs.{IOError, VirtualFile, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -16,9 +16,10 @@ class CdCommand extends VirtualCommand {
     FolderArgument("folder", false, _.getCurrentUserPermission.execute)
   )
 
-  override def getName: String = "cd"
+  override def name: String = "cd"
 
-  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) = {
+  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)
+  : Either[IOError, RunContext] = {
     val folder: String =
       if (args.isEmpty)
         "/home/" + shell.vum.currentUser
@@ -28,10 +29,9 @@ class CdCommand extends VirtualCommand {
     shell.findFolder(folder) match {
       case Left(error) => error.message.ioErrorE
       case Right(fO) => fO match {
-        case Some(f) => Right({
+        case Some(f) =>
           shell.currentFolder = f
-          new RunContext()
-        })
+          Right(new RunContext())
         case _ => s"cd: $folder: No such file or directory".ioErrorE
       }
     }
