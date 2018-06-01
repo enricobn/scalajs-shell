@@ -19,7 +19,7 @@ NEXT
   But pay attention: the commands expect the full path.
 
 - VirtualCommandArgument.complete must return an information to know if there is one precise match.
-  For example if the argument is a file then it's an existent file, in that case and if there are more
+  For example if the argument is a file and it's an existent file, in that case and if there are more
   mandatory arguments, then I add a space to the result, so the user can digit the next arg.
 - completions: if the proposals start with a common prefix longer than the argument of the user,
   replace the argument with that prefix.

@@ -40,7 +40,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
 
   def currentFolder: VirtualFolder = _currentFolder
 
-  def homeFolder: Either[IOError, Option[VirtualFolder]] = currentFolder.resolveFolder(s"/home/${vum.currentUser}")
+  def homeFolder: Either[IOError, VirtualFolder] = toFolder(s"/home/${vum.currentUser}")
 
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
     // TODO simplify
@@ -162,12 +162,14 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     val first: Either[IOError, Option[VirtualFolder]] =
       virtualPath.fragments.head match {
         case RootFragment() => Right(Some(currentFolder.root))
+        case SimpleFragment("~") => homeFolder.right.map(Some(_))
         case _ => Right(Some(currentFolder))
       }
 
     val fragmentsToProcess =
       virtualPath.fragments.head match {
         case RootFragment() => virtualPath.fragments.tail
+        case SimpleFragment("~") => virtualPath.fragments.tail
         case _ => virtualPath.fragments
       }
 

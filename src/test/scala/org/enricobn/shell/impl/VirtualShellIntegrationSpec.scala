@@ -24,17 +24,15 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val fs = new InMemoryFS(vum)
 
-    var currentFolder: VirtualFolder = fs.root
+    val _rootFile = fs.root.touch("rootFile").right.get
+    val _bin = fs.root.mkdir("bin").right.get
 
-    val _rootFile = currentFolder.touch("rootFile").right.get
-    val _bin = currentFolder.mkdir("bin").right.get
-
-    val _usr = currentFolder.mkdir("usr").right.get
+    val _usr = fs.root.mkdir("usr").right.get
     val _usrFile = _usr.touch("usrFile").right.get
     val usrBin = _usr.mkdir("bin").right.get
-    currentFolder = currentFolder.mkdir("home").right.get
-    currentFolder = currentFolder.mkdir("guest").right.get
-    val text = currentFolder.touch("text.txt").right.get
+    val _homeFolder = fs.root.mkdir("home").right.get
+    val _guestFolder = _homeFolder.mkdir("guest").right.get
+    val text = _guestFolder.touch("text.txt").right.get
     text.chmod(666)
     val _binFile = usrBin.touch("binFile").right.get
 
@@ -44,7 +42,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     context.createCommandFile(_bin, new CatCommand())
     context.addToPath(_bin)
     context.addToPath(usrBin)
-    val virtualShell = new VirtualShell(term, vum, context, currentFolder)
+    val virtualShell = new VirtualShell(term, vum, context, _guestFolder)
 
     vum.logUser("guest", "guest")
     text.content = "Hello\nWorld"
@@ -66,6 +64,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       val usr = _usr
       val rootFile = _rootFile
       val usrFile = _usrFile
+      val guest = _guestFolder
     }
   }
 
@@ -276,6 +275,14 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     val file = f.shell.findFile("../.../")
 
     assert(Right(None) == file)
+  }
+
+  "find of ~/text.txt" should "work" in {
+    val f = fixture
+
+    val file = f.shell.findFile("~/text.txt")
+
+    assert(Right(Some(f.textFile)) == file)
   }
 
   private def assertPrompt(result: Either[IOError, Boolean], expectedPrompt : Boolean = true): Unit = {
