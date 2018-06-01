@@ -157,7 +157,9 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
     val parsedLine = new CommandLine(line)
 
     val proposals =
-      if (parsedLine.args.isEmpty) {
+      if (args.isEmpty) {
+        Seq.empty
+      } else if (parsedLine.args.isEmpty) {
         args.head.complete(shell, "", List.empty)
       } else if (parsedLine.incompleteArgument) {
         parseInternal(shell, parsedLine.argsButLast) match {

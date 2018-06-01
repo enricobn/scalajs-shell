@@ -98,4 +98,20 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
   "parse with required arguments before optional" should "be fine" in {
     new VirtualCommandArguments(FileArgument("file1", true), FileArgument("file2", false))
   }
+
+  "complete with no arguments" should "be empty" in {
+    val sut = new VirtualCommandArguments()
+
+    val f = fixture
+
+    assert(sut.complete(f.shell, "cd").isEmpty)
+  }
+
+  "parse with no arguments" should "be empty" in {
+    val sut = new VirtualCommandArguments()
+
+    val f = fixture
+
+    assert(sut.parse(f.shell, "cd").equals(Right(Seq.empty)))
+  }
 }
