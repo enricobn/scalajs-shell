@@ -11,6 +11,9 @@ import scala.scalajs.js.annotation.JSExport
   * Created by enrico on 12/4/16.
   */
 object LsCommand {
+  // TODO filter?
+  private val FOLDER = FolderArgument("folder", false)
+
   private def toString(permissions: VirtualPermissions): String = {
     toString(permissions.owner) + " " + toString(permissions.group) + " " + toString(permissions.others)
   }
@@ -21,22 +24,17 @@ object LsCommand {
     (if (permission.execute) "x" else "-")
 }
 
+import LsCommand._
+
 @JSExport(name = "LsCommand")
-class LsCommand extends VirtualCommand {
+class LsCommand extends VirtualCommandAbstract("ls", FOLDER) {
 
-  private val arguments = new VirtualCommandArguments(
-    // TODO filter?
-    FolderArgument("folder", false)
-  )
-
-  def name: String = "ls"
-
-  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)
+  override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
   : Either[IOError, RunContext] = {
-    val errorOrFolder = arguments.parse(shell, name, args: _*) match {
-      case Left(error) => Left(IOError(error))
-      case Right(Seq(folder: VirtualFolder)) => Right(folder)
-      case Right(Seq()) => Right(shell.currentFolder)
+
+    val errorOrFolder = args match {
+      case Seq(folder: VirtualFolder) => Right(folder)
+      case Seq() => Right(shell.currentFolder)
       case _ => "ls: illegal argument".ioErrorE
     }
 
@@ -47,6 +45,7 @@ class LsCommand extends VirtualCommand {
         folder.files.right.get.foreach(file => print(shellOutput, file))
         Right(new RunContext())
     }
+
   }
 
   private def getAttributes(node: VirtualNode): String = {
@@ -67,7 +66,4 @@ class LsCommand extends VirtualCommand {
     out.flush()
   }
 
-  override def completion(line: String, shell: VirtualShell): Seq[String] = {
-    arguments.complete(shell, line)
-  }
 }

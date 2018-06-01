@@ -6,22 +6,22 @@ import org.enricobn.vfs.{IOError, VirtualFile, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
 
+object CatCommand {
+
+  val FILE = FileArgument("file", true)
+
+}
+
 /**
   * Created by enrico on 12/5/16.
   */
 @JSExport(name = "CatCommand")
-class CatCommand extends VirtualCommand {
-  private val arguments = new VirtualCommandArguments(
-    FileArgument("file", true)
-  )
+class CatCommand extends VirtualCommandAbstract("cat", CatCommand.FILE) {
 
-  override def name: String = "cat"
-
-  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)
+  override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
   : Either[IOError, RunContext] = {
-    val errorOrFile = arguments.parse(shell, name, args: _*) match {
-      case Left(error) => Left(IOError(error))
-      case Right(Seq(file: VirtualFile)) => Right(file)
+    val errorOrFile = args match {
+      case Seq(file: VirtualFile) => Right(file)
       case _ => "cat: illegal argument".ioErrorE
     }
 
@@ -39,8 +39,5 @@ class CatCommand extends VirtualCommand {
         }
     }
   }
-
-  override def completion(line: String, shell: VirtualShell): Seq[String] =
-    arguments.complete(shell, line)
 
 }

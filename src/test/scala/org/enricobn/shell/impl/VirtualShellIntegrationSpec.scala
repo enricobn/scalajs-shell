@@ -118,7 +118,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     assertError(
       f.shell.run("cd", "foo"),
-      "cd: foo: No such file or directory"
+      "cd: folder: foo: no such directory"
     )
   }
 

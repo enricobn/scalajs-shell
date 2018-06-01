@@ -6,39 +6,34 @@ import org.enricobn.vfs.{IOError, VirtualFile, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
 
+object CdCommand {
+
+  val FOLDER = FolderArgument("folder", false, _.getCurrentUserPermission.execute)
+
+}
+
 /**
   * Created by enrico on 12/5/16.
   */
 @JSExport(name = "CdCommand")
-class CdCommand extends VirtualCommand {
+class CdCommand extends VirtualCommandAbstract("cd", CdCommand.FOLDER) {
 
-  private val arguments = new VirtualCommandArguments(
-    FolderArgument("folder", false, _.getCurrentUserPermission.execute)
-  )
-
-  override def name: String = "cd"
-
-  override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*)
+  override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
   : Either[IOError, RunContext] = {
-    val folder: String =
-      if (args.isEmpty)
-        "/home/" + shell.vum.currentUser
-      else
-        args(0)
 
-    shell.findFolder(folder) match {
-      case Left(error) => error.message.ioErrorE
-      case Right(fO) => fO match {
-        case Some(f) =>
-          shell.currentFolder = f
-          Right(new RunContext())
-        case _ => s"cd: $folder: No such file or directory".ioErrorE
-      }
+    val errorOrFolder = args match {
+      case Seq(folder: VirtualFolder) => Right(folder)
+      case Seq() => shell.homeFolder
+      case _ => "cd: illegal argument".ioErrorE
     }
-  }
 
-  override def completion(line: String, shell: VirtualShell): Seq[String] = {
-    arguments.complete(shell, line)
+    errorOrFolder match {
+      case Left(error) => error.message.ioErrorE
+      case Right(folder) =>
+          shell.currentFolder = folder
+          Right(new RunContext())
+      }
+
   }
 
 }
