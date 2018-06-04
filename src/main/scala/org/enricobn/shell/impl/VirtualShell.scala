@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell._
-import org.enricobn.terminal.{StringPub, Terminal}
+import org.enricobn.terminal.{StringPub, Terminal, TerminalOperations}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
 import org.scalajs.dom
@@ -9,19 +9,15 @@ import org.scalajs.dom
 import scala.collection.mutable
 import scala.scalajs.js.annotation.{JSExport, JSExportAll}
 import scala.scalajs.js.timers._
+import Terminal._
 
 /**
   * Created by enrico on 12/4/16.
   */
 object VirtualShell {
+
   private val INTERACTIVE_INTERVAL: Int = 500
 
-  val ESC: String = 27.toChar.toString
-  val TAB: String = 9.toChar.toString
-  val BACKSPACE: String = 8.toChar.toString
-  val CR: String = 13.toChar.toString
-  val LF: String = 10.toChar.toString
-  val CRLF: String = CR + LF
 }
 
 @JSExport(name="VirtualShell")
@@ -57,71 +53,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   def stopInteractiveCommands(whenDone: () => Boolean): Unit = {
     this.whenDone = whenDone
     runningInteractiveCommands = false
-  }
-
-  /**
-    *
-    * @return true if I must show the prompt
-    */
-  private def runFile(file: VirtualFile, args: String*) : Either[IOError, Boolean] = {
-    if (runningInteractiveCommands) {
-      return "Interactive command still running. Stop it first.".ioErrorE
-    }
-
-    if (!vum.checkExecuteAccess(file)) {
-      return "Permission denied!".ioErrorE
-    }
-
-    val result = for {
-        command <- context.getCommand(file).right
-        _ <- Right(terminal.removeOnInputs()).right
-        run <- command.run(this, new CommandInput(), new CommandOutput(), args: _*).right
-      } yield {
-        run
-      }
-
-    result match {
-      case Left(error) =>
-        terminal.removeOnInputs()
-        terminal.onInput(inputHandler)
-        error.message.ioErrorE
-      case Right(runContext) =>
-        Right(
-          if (runContext.interactive) {
-            setTimeout(INTERACTIVE_INTERVAL) {
-              runningInteractiveCommands = true
-              updateRunContext(runContext)
-            }
-            false
-          } else {
-            terminal.removeOnInputs()
-            terminal.onInput(inputHandler)
-            true
-          }
-        )
-    }
-  }
-
-  private def updateRunContext(runContext: RunContext): Unit = {
-    if (!runningInteractiveCommands || !runContext.running) {
-      terminal.removeOnInputs()
-      terminal.onInput(inputHandler)
-      if (!runningInteractiveCommands) {
-        if (whenDone.apply()) {
-          prompt()
-        }
-      } else {
-        prompt()
-      }
-      runningInteractiveCommands = false
-    } else {
-      dom.window.requestAnimationFrame((time: Double) => {
-        runContext.update()
-        setTimeout(INTERACTIVE_INTERVAL) {
-          updateRunContext(runContext)
-        }
-      })
-    }
   }
 
   def currentFolder_=(folder: VirtualFolder) {
@@ -197,6 +128,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
       case Right(None) => Left(IOError(s"Cannot resolve path '$path' from '$currentFolder'."))
       case Left(error) => Left(error)
     }
+
   /**
     * @return a Left(error) if the file or the path does not exist; if you want to check that, use
     * [[VirtualShell.findFile]] instead.
@@ -222,6 +154,87 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
         case Right(None) => Right(None)
         case Left(error) => Left(error)
       }
+  }
+
+  def readLine(onEnter: String => Unit) {
+    terminal.removeOnInputs()
+
+    terminal.onInput(new GetStringInputHandler( { s =>
+
+      terminal.removeOnInputs()
+
+      if (inputHandler != null) {
+        terminal.onInput(inputHandler)
+      }
+
+      onEnter(s)
+    }))
+
+  }
+
+  /**
+    *
+    * @return true if I must show the prompt
+    */
+  private def runFile(file: VirtualFile, args: String*) : Either[IOError, Boolean] = {
+    if (runningInteractiveCommands) {
+      return "Interactive command still running. Stop it first.".ioErrorE
+    }
+
+    if (!vum.checkExecuteAccess(file)) {
+      return "Permission denied!".ioErrorE
+    }
+
+    val result = for {
+      command <- context.getCommand(file).right
+      _ <- Right(terminal.removeOnInputs()).right
+      run <- command.run(this, new CommandInput(), new CommandOutput(), args: _*).right
+    } yield {
+      run
+    }
+
+    result match {
+      case Left(error) =>
+        terminal.removeOnInputs()
+        terminal.onInput(inputHandler)
+        error.message.ioErrorE
+      case Right(runContext) =>
+        Right(
+          if (runContext.interactive) {
+            setTimeout(INTERACTIVE_INTERVAL) {
+              runningInteractiveCommands = true
+              updateRunContext(runContext)
+            }
+            false
+          } else {
+            terminal.removeOnInputs()
+            terminal.onInput(inputHandler)
+            true
+          }
+        )
+    }
+  }
+
+  private def updateRunContext(runContext: RunContext): Unit = {
+    if (!runningInteractiveCommands || !runContext.running) {
+      terminal.removeOnInputs()
+      terminal.onInput(inputHandler)
+      if (!runningInteractiveCommands) {
+        if (whenDone.apply()) {
+          prompt()
+        }
+      } else {
+        prompt()
+      }
+      runningInteractiveCommands = false
+    } else {
+      dom.window.requestAnimationFrame((time: Double) => {
+        runContext.update()
+        setTimeout(INTERACTIVE_INTERVAL) {
+          updateRunContext(runContext)
+        }
+      })
+    }
   }
 
   private def prompt() {
@@ -256,8 +269,8 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
         }
       } else if (event == BACKSPACE) {
         if (line.nonEmpty) {
-          moveLeft(1)
-          eraseFromCursor()
+          TerminalOperations.moveLeft(terminal, 1)
+          TerminalOperations.eraseFromCursor(terminal)
           terminal.flush()
           line = line.substring(0, line.length -1)
           x -= 1
@@ -305,14 +318,6 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
     }
   }
 
-  private def eraseFromCursor() {
-    terminal.add(ESC + "[K")
-  }
-
-  private def moveLeft(chars: Int) {
-    terminal.add(ESC + "[" + chars + "D")
-  }
-
   private def processHistory(command: String) {
     if (x != xPrompt) {
 //      terminal.add(ESC + "[" + (x - xPrompt) + "D")
@@ -325,8 +330,8 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
   }
 
   private def eraseToPrompt(): Unit = {
-    moveLeft(x - xPrompt)
-    eraseFromCursor()
+    TerminalOperations.moveLeft(terminal, x - xPrompt)
+    TerminalOperations.eraseFromCursor(terminal)
   }
 
   private def processLine(line: String) : Boolean = {
@@ -362,6 +367,43 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
 
     override def flush() {
       terminal.flush()
+    }
+  }
+
+  private[VirtualShell] class GetStringInputHandler(onEnter: String => Unit) extends StringPub#Sub {
+    private var line: String = ""
+
+    override def notify(pub: mutable.Publisher[String], event: String) {
+      if (event == CR) {
+        terminal.add(CRLF)
+        terminal.flush()
+
+        onEnter.apply(line)
+      } else if (event == BACKSPACE) {
+        if (line.nonEmpty) {
+          TerminalOperations.moveLeft(terminal, 1)
+          TerminalOperations.eraseFromCursor(terminal)
+          terminal.flush()
+          line = line.substring(0, line.length - 1)
+        }
+        /*      } else if (event.startsWith(ESC)) {
+                val cmd = event.substring(1)
+                // Up
+                if (cmd == "[A") {
+                  history.prev(line).foreach(processHistory)
+                  // Down
+                } else if (cmd == "[B") {
+                  history.succ().foreach(processHistory)
+                  //        for (c <- event) {
+                  //          terminal.add(c.toInt + CRLF)
+                  //        }
+                  //        terminal.flush()
+                }*/
+      } else {
+        terminal.add(event)
+        terminal.flush()
+        line += event
+      }
     }
   }
 

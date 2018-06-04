@@ -8,6 +8,7 @@ import scala.scalajs.js.annotation.JSExport
 
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
+import org.enricobn.terminal.Terminal._
 
 /**
   * Created by enrico on 12/19/16.
@@ -43,7 +44,7 @@ object TestShellFactory {
 
     job match {
       case Left(error) =>
-        terminal.add(error.message + VirtualShell.CRLF)
+        terminal.add(error.message + CRLF)
         terminal.flush()
         null
       case Right(j) =>

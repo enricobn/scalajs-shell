@@ -6,6 +6,7 @@ import org.enricobn.vfs._
 import org.enricobn.vfs.IOError._
 
 import scala.scalajs.js.annotation.JSExport
+import org.enricobn.terminal.Terminal._
 
 /**
   * Created by enrico on 12/4/16.
@@ -62,7 +63,7 @@ class LsCommand extends VirtualCommandAbstract("ls", FOLDER) {
     } else {
       s += node.name
     }
-    out.write(s + VirtualShell.CRLF)
+    out.write(s + CRLF)
     out.flush()
   }
 
