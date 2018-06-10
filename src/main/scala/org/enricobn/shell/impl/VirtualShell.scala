@@ -1,6 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell._
+import org.enricobn.terminal.Terminal._
 import org.enricobn.terminal.{StringPub, Terminal, TerminalOperations}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
@@ -9,7 +10,6 @@ import org.scalajs.dom
 import scala.collection.mutable
 import scala.scalajs.js.annotation.{JSExport, JSExportAll}
 import scala.scalajs.js.timers._
-import Terminal._
 
 /**
   * Created by enrico on 12/4/16.
@@ -22,7 +22,7 @@ object VirtualShell {
 
 @JSExport(name="VirtualShell")
 @JSExportAll
-class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context: VirtualShellContext,
+class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager, val context: VirtualShellContext,
                    private var _currentFolder: VirtualFolder) {
   import VirtualShell._
   private var line = ""
@@ -181,7 +181,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val context
       return "Interactive command still running. Stop it first.".ioErrorE
     }
 
-    if (!vum.checkExecuteAccess(file)) {
+    if (!vsm.checkExecuteAccess(file)) {
       return "Permission denied!".ioErrorE
     }
 

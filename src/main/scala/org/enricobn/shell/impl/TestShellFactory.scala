@@ -1,14 +1,15 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.impl.VirtualUsersManagerImpl
+import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 
 import scala.scalajs.js.annotation.JSExport
 
 // to access members of structural types (new {}) without warnings
-import scala.language.reflectiveCalls
 import org.enricobn.terminal.Terminal._
+
+import scala.language.reflectiveCalls
 
 /**
   * Created by enrico on 12/19/16.
@@ -18,7 +19,8 @@ object TestShellFactory {
   @JSExport
   def create(terminal: Terminal) : VirtualShell = {
     val vum = new VirtualUsersManagerImpl("root")
-    val fs = new InMemoryFS(vum)
+    val vsm = new VirtualSecurityManagerImpl(vum)
+    val fs = new InMemoryFS(vum, vsm)
     val rootFolder = fs.root
     val context = new VirtualShellContextImpl()
 
@@ -50,7 +52,7 @@ object TestShellFactory {
       case Right(j) =>
         j.path.foreach(context.addToPath)
         vum.logUser("guest", "guest")
-        new VirtualShell(terminal, vum, context, j.currentFolder)
+        new VirtualShell(terminal, vum, vsm, context, j.currentFolder)
     }
   }
 }

@@ -1,9 +1,9 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.impl.VirtualUsersManagerImpl
-import org.enricobn.vfs.inmemory.InMemoryFS
 import org.enricobn.vfs._
+import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerImpl}
+import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -19,10 +19,11 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val rootPassword = "root"
     val vum = new VirtualUsersManagerImpl(rootPassword)
+    val vsm = new VirtualSecurityManagerImpl(vum)
 
     vum.addUser("guest", "guest")
 
-    val fs = new InMemoryFS(vum)
+    val fs = new InMemoryFS(vum, vsm)
 
     val _rootFile = fs.root.touch("rootFile").right.get
     val _bin = fs.root.mkdir("bin").right.get
@@ -42,7 +43,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     context.createCommandFile(_bin, new CatCommand())
     context.addToPath(_bin)
     context.addToPath(usrBin)
-    val virtualShell = new VirtualShell(term, vum, context, _guestFolder)
+    val virtualShell = new VirtualShell(term, vum, vsm, context, _guestFolder)
 
     vum.logUser("guest", "guest")
     text.content = "Hello\nWorld"

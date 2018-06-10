@@ -1,30 +1,32 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
-
-import scala.language.reflectiveCalls
-import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualUsersManager}
 import org.enricobn.vfs.inmemory.InMemoryFS
+import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualSecurityManager, VirtualUsersManager}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
+
+import scala.language.reflectiveCalls
 
 class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers {
 
   private def fixture = {
-    val vum = stub[VirtualUsersManager]
-    (vum.checkWriteAccess _).when(*).returns(true)
-    (vum.checkExecuteAccess _).when(*).returns(true)
-    (vum.checkReadAccess _).when(*).returns(true)
+    val _vsm = stub[VirtualSecurityManager]
+    val _vum = stub[VirtualUsersManager]
+    (_vsm.checkWriteAccess _).when(*).returns(true)
+    (_vsm.checkReadAccess _).when(*).returns(true)
+    (_vsm.checkExecuteAccess _).when(*).returns(true)
+
 
     val f = new {
-      val usersManager: VirtualUsersManager = vum
-      val fs = new InMemoryFS(usersManager)
+      val usersManager: VirtualUsersManager = _vum
+      val fs = new InMemoryFS(_vum, _vsm)
       val usr : VirtualFolder = fs.root.mkdir("usr").right.get
       val bin : VirtualFolder = usr.mkdir("bin").right.get
       val rootFile : VirtualFile = fs.root.touch("rootFile").right.get
       val usrFile : VirtualFile = usr.touch("usrFile").right.get
       val binFile : VirtualFile = bin.touch("binFile").right.get
-      val shell = new VirtualShell(stub[Terminal], vum, new VirtualShellContextImpl(), bin)
+      val shell = new VirtualShell(stub[Terminal], _vum, _vsm, new VirtualShellContextImpl(), bin)
     }
     (f.usersManager.currentUser _).when().returns("foo")
     f

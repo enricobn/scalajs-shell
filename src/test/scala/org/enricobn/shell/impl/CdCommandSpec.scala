@@ -1,8 +1,8 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.VirtualUsersManager
 import org.enricobn.vfs.inmemory.{InMemoryFS, InMemoryFolder}
+import org.enricobn.vfs.{VirtualSecurityManager, VirtualUsersManager}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -14,12 +14,13 @@ import scala.language.reflectiveCalls
   */
 class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   private def fixture = {
+    val _vsm = stub[VirtualSecurityManager]
     val _vum = stub[VirtualUsersManager]
-    (_vum.checkWriteAccess _).when(*).returns(true)
-    (_vum.checkReadAccess _).when(*).returns(true)
-    (_vum.checkExecuteAccess _).when(*).returns(true)
+    (_vsm.checkWriteAccess _).when(*).returns(true)
+    (_vsm.checkReadAccess _).when(*).returns(true)
+    (_vsm.checkExecuteAccess _).when(*).returns(true)
 
-    val fs = new InMemoryFS(_vum)
+    val fs = new InMemoryFS(_vum, _vsm)
     val bin = fs.root.mkdir("bin").right.get
     val home = fs.root.mkdir("home").right.get
     val guest = home.mkdir("guest").right.get
@@ -28,7 +29,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
       val command = new CdCommand
       val vum: VirtualUsersManager = _vum
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShell(stub[Terminal], vum, new VirtualShellContextImpl(), currentFolder)
+      val shell = new VirtualShell(stub[Terminal], vum, _vsm, new VirtualShellContextImpl(), currentFolder)
     }
   }
 

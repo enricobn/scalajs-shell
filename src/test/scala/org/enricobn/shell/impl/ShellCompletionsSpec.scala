@@ -2,8 +2,8 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell._
 import org.enricobn.terminal.Terminal
+import org.enricobn.vfs._
 import org.enricobn.vfs.inmemory.{InMemoryFS, InMemoryFolder}
-import org.enricobn.vfs.{VirtualFile, VirtualFolder, VirtualPermission, VirtualUsersManager}
 import org.scalamock.matchers.ArgThat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
@@ -15,12 +15,13 @@ import scala.language.reflectiveCalls
   * Created by enrico on 12/15/16.
   */
 class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
+  val _vsm = stub[VirtualSecurityManager]
   val _vum = stub[VirtualUsersManager]
-  (_vum.checkWriteAccess _).when(*).returns(true)
-  (_vum.checkReadAccess _).when(*).returns(true)
-  (_vum.checkExecuteAccess _).when(*).returns(true)
+  (_vsm.checkWriteAccess _).when(*).returns(true)
+  (_vsm.checkReadAccess _).when(*).returns(true)
+  (_vsm.checkExecuteAccess _).when(*).returns(true)
 
-  val fs = new InMemoryFS(_vum)
+  val fs = new InMemoryFS(_vum, _vsm)
   val bin = fs.root.mkdir("bin").right.get
   val home = fs.root.mkdir("home").right.get
   val guest = home.mkdir("guest").right.get
@@ -30,7 +31,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
       val context = stub[VirtualShellContext]
       val completions = new ShellCompletions(context)
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShell(stub[Terminal], _vum, new VirtualShellContextImpl(), currentFolder)
+      val shell = new VirtualShell(stub[Terminal], _vum, _vsm, new VirtualShellContextImpl(), currentFolder)
     }
   }
 
