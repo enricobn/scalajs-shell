@@ -8,6 +8,7 @@ import org.enricobn.vfs._
 import org.scalajs.dom
 
 import scala.collection.mutable
+import scala.language.implicitConversions
 import scala.scalajs.js.annotation.{JSExport, JSExportAll}
 import scala.scalajs.js.timers._
 
@@ -23,7 +24,7 @@ object VirtualShell {
 @JSExport(name="VirtualShell")
 @JSExportAll
 class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager, val context: VirtualShellContext,
-                   private var _currentFolder: VirtualFolder) {
+                   private var _currentFolder: VirtualFolder, private val initialAuthentication: Authentication) {
   import VirtualShell._
   private var line = ""
   private val history = new CommandHistory
@@ -33,10 +34,13 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
   private val completions = new ShellCompletions(context)
   private var runningInteractiveCommands = false
   private var whenDone: () => Boolean = _
+  private implicit var _authentication = initialAuthentication
+
+  def authentication = _authentication
 
   def currentFolder: VirtualFolder = _currentFolder
 
-  def homeFolder: Either[IOError, VirtualFolder] = toFolder(s"/home/${vum.currentUser}")
+  def homeFolder: Either[IOError, VirtualFolder] = toFolder(s"/home/${authentication.user}")
 
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
     // TODO simplify
@@ -172,6 +176,14 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
 
   }
 
+  def login(user: String, password: String): Either[IOError, Authentication] =
+    vum.logUser(user, password) match {
+      case r@Right(authentication) =>
+        _authentication = authentication
+        r
+      case e@Left(_) => e
+    }
+
   /**
     *
     * @return true if I must show the prompt
@@ -245,7 +257,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
 //          .add(currentFolder.path)
 //        .endAll
 //        .add("$ ")
-    val prompt = vum.currentUser + ":" + currentFolder.path + "$ "
+    val prompt = authentication.user + ":" + currentFolder.path + "$ "
 
 //    val text: String = ESC + "[32m" + vum.currentUser + ESC + "[0m" + ":" + currentFolder.path + "$ "
     terminal.add(prompt.toString)

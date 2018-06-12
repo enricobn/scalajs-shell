@@ -17,19 +17,19 @@ class VirtualShellContextImpl extends VirtualShellContext {
   }
 
   // TODO I don't like it here, has nothing to do with context!
-  def createCommandFile(folder: VirtualFolder, command: VirtualCommand): Either[IOError, VirtualFile] = {
+  def createCommandFile(folder: VirtualFolder, command: VirtualCommand)(implicit authentication: Authentication): Either[IOError, VirtualFile] = {
     for {
       file <- folder.touch(command.name).right
-      _ <- file.setExecutable().toLeft(None).right
-      _ <- (file.content = command).toLeft(None).right
+      _ <- file.setExecutable.toLeft(None).right
+      _ <- file.setContent(command).toLeft(None).right
     } yield {
       file
     }
   }
 
   // TODO I don't like it here, has nothing to do with context!
-  def getCommand(file: VirtualFile): Either[IOError, VirtualCommand] =
-    file.content match {
+  def getCommand(file: VirtualFile)(implicit authentication: Authentication): Either[IOError, VirtualCommand] =
+    file.getContent match {
       case Left(error) => Left(error)
       case Right(command: VirtualCommand) => Right(command)
       case _ => "File is not a command.".ioErrorE
@@ -37,7 +37,7 @@ class VirtualShellContextImpl extends VirtualShellContext {
 
   // TODO I don't like it here, has something about context, but I think its better to let context hold only
   // the state.
-  def findCommand(command: String, currentFolder: VirtualFolder) : Option[VirtualFile] = {
+  def findCommand(command: String, currentFolder: VirtualFolder)(implicit authentication: Authentication) : Option[VirtualFile] = {
     val first: Option[VirtualFile] = path
       .map(folder => {
         folder.findFile(command).right.get

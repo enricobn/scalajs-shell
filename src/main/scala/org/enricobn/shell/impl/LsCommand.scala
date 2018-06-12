@@ -1,12 +1,12 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{RunContext, ShellInput, ShellOutput, VirtualCommand}
+import org.enricobn.shell.{RunContext, ShellInput, ShellOutput}
+import org.enricobn.terminal.Terminal._
 import org.enricobn.terminal.TerminalColors
-import org.enricobn.vfs._
 import org.enricobn.vfs.IOError._
+import org.enricobn.vfs._
 
 import scala.scalajs.js.annotation.JSExport
-import org.enricobn.terminal.Terminal._
 
 /**
   * Created by enrico on 12/4/16.
@@ -25,12 +25,13 @@ object LsCommand {
     (if (permission.execute) "x" else "-")
 }
 
-import LsCommand._
+import org.enricobn.shell.impl.LsCommand._
 
 @JSExport(name = "LsCommand")
 class LsCommand extends VirtualCommandAbstract("ls", FOLDER) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
+                        (implicit authentication: Authentication)
   : Either[IOError, RunContext] = {
 
     val errorOrFolder = args match {

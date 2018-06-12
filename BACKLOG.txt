@@ -1,5 +1,6 @@
 DOING
 ------
+- on branch authentication: authentication in scalajs-vfs
 
 NEXT
 -----

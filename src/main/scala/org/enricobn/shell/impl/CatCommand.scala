@@ -1,9 +1,9 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{RunContext, ShellInput, ShellOutput}
-import org.enricobn.vfs.IOError._
-import org.enricobn.vfs.{IOError, VirtualFile}
 import org.enricobn.terminal.Terminal._
+import org.enricobn.vfs.IOError._
+import org.enricobn.vfs.{Authentication, IOError, VirtualFile}
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -20,6 +20,7 @@ object CatCommand {
 class CatCommand extends VirtualCommandAbstract("cat", CatCommand.FILE) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
+                        (implicit authentication: Authentication)
   : Either[IOError, RunContext] = {
     val errorOrFile = args match {
       case Seq(file: VirtualFile) => Right(file)
@@ -29,7 +30,7 @@ class CatCommand extends VirtualCommandAbstract("cat", CatCommand.FILE) {
     errorOrFile match {
       case Left(error) => Left(error)
       case Right(file) =>
-        file.content match {
+        file.getContent match {
           case Left(error) => error.message.ioErrorE
           case Right(c) =>
             shellOutput.write(c.toString)

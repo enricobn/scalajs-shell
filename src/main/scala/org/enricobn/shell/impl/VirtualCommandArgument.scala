@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{CompletionPath, PartialPath, UnknownPath}
-import org.enricobn.vfs.{VirtualFS, VirtualFile, VirtualFolder}
+import org.enricobn.vfs.{Authentication, VirtualFS, VirtualFile, VirtualFolder}
 
 import scala.collection.mutable.ListBuffer
 
@@ -24,7 +24,7 @@ trait VirtualCommandArgument[+T] {
 // the filter will be applied to /usr/bin, /usr/bin/dummy and /usr/bin/dummy1, but not to /usr.
 // I think it depends on the command, so it's not very useful to handle the filter here.
 case class FolderArgument(override val name: String, override val required: Boolean,
-                          filter: VirtualFolder => Boolean = _ => true)
+                          filter: (VirtualFolder, VirtualShell) => Boolean = (_, _) => true)
   extends VirtualCommandArgument[VirtualFolder] {
 
   override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, VirtualFolder] = {
@@ -32,7 +32,7 @@ case class FolderArgument(override val name: String, override val required: Bool
       case Left(error) => Left(error.message)
       case Right(folder) => folder match {
         case Some(f) =>
-          if (filter.apply(f))
+          if (filter.apply(f, shell))
             Right(f)
           else
             Left(s"$name: $value: no such directory")
@@ -41,39 +41,41 @@ case class FolderArgument(override val name: String, override val required: Bool
     }
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
-      CompletionPath(shell, value) match {
-        case UnknownPath() => Seq.empty
-        case partialPath: PartialPath =>
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
+    implicit val authentication: Authentication = shell.authentication
 
-          if (!filter.apply(partialPath.folder)) {
-            return Seq.empty
-          }
+    CompletionPath(shell, value) match {
+      case UnknownPath() => Seq.empty
+      case partialPath: PartialPath =>
 
-          partialPath.folder.folders match {
-            case Left(_) => Seq.empty
-            case Right(allFolders) =>
-              var folders = allFolders.filter(filter)
-              if (partialPath.remaining.isDefined) {
-                folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
-              }
-              folders
-                .map (partialPath.relativePath + _.name + "/")
-                .toSeq
-          }
-      }
+        if (!filter.apply(partialPath.folder, shell)) {
+          return Seq.empty
+        }
 
+        partialPath.folder.folders match {
+          case Left(_) => Seq.empty
+          case Right(allFolders) =>
+            var folders = allFolders.filter(filter(_, shell))
+            if (partialPath.remaining.isDefined) {
+              folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
+            }
+            folders
+              .map(partialPath.relativePath + _.name + "/")
+              .toSeq
+        }
+    }
+  }
 }
 
 case class FileArgument(override val name: String, override val required: Boolean,
-                        filter: VirtualFile => Boolean = _ => true)
+                        filter: (VirtualFile, VirtualShell) => Boolean = (_, _) => true)
   extends VirtualCommandArgument[VirtualFile] {
 
   override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, VirtualFile] = {
     shell.findFile(value) match {
       case Left(error) => Left(error.message)
       case Right(Some(file)) =>
-        if (filter.apply(file))
+        if (filter.apply(file, shell))
           Right(file)
         else
           Left(s"$name: $value: no such file")
@@ -81,7 +83,9 @@ case class FileArgument(override val name: String, override val required: Boolea
     }
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
+    implicit val authentication: Authentication = shell.authentication
+
     CompletionPath(shell, value) match {
       case UnknownPath() => Seq.empty
       case PartialPath(folder, relativePath, remaining) =>
@@ -89,7 +93,7 @@ case class FileArgument(override val name: String, override val required: Boolea
           folder.files match {
             case Left(_) => Seq.empty
             case Right(fx) =>
-              fx.filter(filter)
+              fx.filter(filter(_, shell))
           }
 
         val folders =
@@ -108,6 +112,7 @@ case class FileArgument(override val name: String, override val required: Boolea
 
       case _ => Seq.empty
     }
+  }
 
 }
 
@@ -166,7 +171,7 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
           case Left(_) => Seq.empty
           case Right(result) =>
             args(parsedLine.args.length - 1)
-                          .complete(shell, parsedLine.lastArgument.get, result)
+                                                              .complete(shell, parsedLine.lastArgument.get, result)
         }
       } else {
         parseInternal(shell, parsedLine.args) match {

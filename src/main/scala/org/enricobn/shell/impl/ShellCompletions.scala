@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualShellContext
-import org.enricobn.vfs.VirtualFolder
+import org.enricobn.vfs.Authentication
 
 /**
   * Created by enrico on 12/15/16.
@@ -15,6 +15,8 @@ final case class NoProposals() extends CompletionResult
 class ShellCompletions(context: VirtualShellContext) {
 
   def complete(line: String, shell: VirtualShell): CompletionResult = {
+    implicit val authentication: Authentication = shell.authentication
+
     val parsedLine = new CommandLine(line)
 
     if (parsedLine.invalidCommand)
@@ -24,7 +26,7 @@ class ShellCompletions(context: VirtualShellContext) {
       if (parsedLine.incompleteCommand) {
         context.path
           .flatMap(_.files.right.get)
-          .filter(_.getCurrentUserPermission.execute)
+          .filter(_.getCurrentUserPermission.right.exists(_.execute))
           .filter(_.name.startsWith(parsedLine.commandName))
           .map(_.name).toList
       } else {

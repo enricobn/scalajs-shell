@@ -1,6 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
+import org.enricobn.vfs.Authentication
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 
@@ -23,6 +24,7 @@ object TestShellFactory {
     val fs = new InMemoryFS(vum, vsm)
     val rootFolder = fs.root
     val context = new VirtualShellContextImpl()
+    implicit val rootAuthentication: Authentication = vum.logRoot("root").right.get
 
     vum.addUser("guest", "guest")
 
@@ -33,7 +35,7 @@ object TestShellFactory {
       home <- rootFolder.mkdir("home").right
       homeGuest <- home.mkdir("guest").right
       text <- homeGuest.touch("text.txt").right
-      _ <- (text.content = "Hello\nWorld").toLeft(None).right
+      _ <- text.setContent("Hello\nWorld").toLeft(None).right
       _ <- text.chmod(666).toLeft(None).right
       _ <- context.createCommandFile(bin, new LsCommand()).right
       _ <- context.createCommandFile(bin, new CdCommand()).right
@@ -51,8 +53,8 @@ object TestShellFactory {
         null
       case Right(j) =>
         j.path.foreach(context.addToPath)
-        vum.logUser("guest", "guest")
-        new VirtualShell(terminal, vum, vsm, context, j.currentFolder)
+        val authentication = vum.logUser("guest", "guest").right.get
+        new VirtualShell(terminal, vum, vsm, context, j.currentFolder, authentication)
     }
   }
 }

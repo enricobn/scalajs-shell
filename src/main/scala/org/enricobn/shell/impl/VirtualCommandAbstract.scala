@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{RunContext, ShellInput, ShellOutput, VirtualCommand}
-import org.enricobn.vfs.IOError
+import org.enricobn.vfs.{Authentication, IOError}
 
 abstract class VirtualCommandAbstract(val name: String, val virtualArguments: VirtualCommandArgument[_]*) extends VirtualCommand {
 
@@ -11,7 +11,7 @@ abstract class VirtualCommandAbstract(val name: String, val virtualArguments: Vi
     arguments.parse(shell, name, args: _*) match {
       case Left(message) => Left(IOError(name + ": " + message))
       case Right(values) =>
-        runParsed(shell, shellInput, shellOutput, values)
+        runParsed(shell, shellInput, shellOutput, values)(shell.authentication)
     }
   }
 
@@ -19,6 +19,6 @@ abstract class VirtualCommandAbstract(val name: String, val virtualArguments: Vi
     arguments.complete(shell, line)
   }
 
-  def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any]): Either[IOError, RunContext]
+  def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])(implicit authentication: Authentication): Either[IOError, RunContext]
 
 }

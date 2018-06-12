@@ -21,6 +21,8 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     val vum = new VirtualUsersManagerImpl(rootPassword)
     val vsm = new VirtualSecurityManagerImpl(vum)
 
+    implicit val _rootAuthentication: Authentication = vum.logRoot(rootPassword).right.get
+
     vum.addUser("guest", "guest")
 
     val fs = new InMemoryFS(vum, vsm)
@@ -43,10 +45,12 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     context.createCommandFile(_bin, new CatCommand())
     context.addToPath(_bin)
     context.addToPath(usrBin)
-    val virtualShell = new VirtualShell(term, vum, vsm, context, _guestFolder)
 
-    vum.logUser("guest", "guest")
-    text.content = "Hello\nWorld"
+    val authentication = vum.logUser("guest", "guest").right.get
+
+    val virtualShell = new VirtualShell(term, vum, vsm, context, _guestFolder, authentication)
+
+    text.setContent("Hello\nWorld")
 
     (term.add _).expects(where {message: String => message.contains("/home/guest")})
     (term.flush _).expects().anyNumberOfTimes()
@@ -66,6 +70,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       val rootFile = _rootFile
       val usrFile = _usrFile
       val guest = _guestFolder
+      val rootAuthentication = _rootAuthentication
     }
   }
 
@@ -128,7 +133,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     f.virtualUsersManager.logUser("root", "root")
 
-    f.textFile.setExecutable()
+    f.textFile.setExecutable(f.rootAuthentication)
 
     (f.terminal.removeOnInputs _).expects().times.repeat(1)
 

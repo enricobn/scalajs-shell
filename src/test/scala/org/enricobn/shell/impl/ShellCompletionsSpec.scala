@@ -17,9 +17,13 @@ import scala.language.reflectiveCalls
 class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   val _vsm = stub[VirtualSecurityManager]
   val _vum = stub[VirtualUsersManager]
-  (_vsm.checkWriteAccess _).when(*).returns(true)
-  (_vsm.checkReadAccess _).when(*).returns(true)
-  (_vsm.checkExecuteAccess _).when(*).returns(true)
+
+  implicit val authentication: Authentication = Authentication("", VirtualUsersManager.ROOT)
+
+  (_vsm.checkWriteAccess(_ : VirtualNode)(_ : Authentication)).when(*, *).returns(true)
+  (_vsm.checkExecuteAccess(_ : VirtualNode)(_: Authentication)).when(*, *).returns(true)
+  (_vsm.checkReadAccess(_: VirtualNode)(_: Authentication)).when(*, *).returns(true)
+  (_vum.getUser(_ : Authentication)).when(*).returns(Some(VirtualUsersManager.ROOT))
 
   val fs = new InMemoryFS(_vum, _vsm)
   val bin = fs.root.mkdir("bin").right.get
@@ -31,7 +35,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
       val context = stub[VirtualShellContext]
       val completions = new ShellCompletions(context)
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShell(stub[Terminal], _vum, _vsm, new VirtualShellContextImpl(), currentFolder)
+      val shell = new VirtualShell(stub[Terminal], _vum, _vsm, new VirtualShellContextImpl(), currentFolder, authentication)
     }
   }
 
@@ -114,10 +118,10 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     val permission = stub[VirtualPermission]
     (permission.execute _).when().returns(true)
 
-    (commandFile.getCurrentUserPermission _).when().returns(permission)
+    (commandFile.getCurrentUserPermission(_ : Authentication)).when(*).returns(Right(permission))
 
-    (context.findCommand _).when(name, *).returns(Some(commandFile))
-    (context.getCommand _).when(sameRef(commandFile)).returns(Right(virtualCommand))
+    (context.findCommand(_ : String, _ : VirtualFolder)(_ : Authentication)).when(name, *, *).returns(Some(commandFile))
+    (context.getCommand(_ : VirtualFile)(_ : Authentication)).when(sameRef(commandFile), *).returns(Right(virtualCommand))
 
     commandFile
   }
@@ -126,7 +130,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
   private def stubPath(context: VirtualShellContext, files: Set[VirtualFile]): Unit = {
     val bin = stub[VirtualFolder]
-    (bin.files _).when().returns(Right(files))
+    (bin.files(_ : Authentication)).when(*).returns(Right(files))
     (context.path _).when().returns(Seq(bin))
   }
 

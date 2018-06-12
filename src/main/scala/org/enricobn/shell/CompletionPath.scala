@@ -1,13 +1,15 @@
 package org.enricobn.shell
 
 import org.enricobn.shell.impl.VirtualShell
-import org.enricobn.vfs.{VirtualFS, VirtualFolder}
+import org.enricobn.vfs.{Authentication, VirtualFS, VirtualFolder}
 /**
   * Created by enrico on 12/14/16.
   */
 object CompletionPath {
 
   def apply(shell: VirtualShell, prefix: String): CompletionPath = {
+    implicit val authentication: Authentication = shell.authentication
+
     val lastSlash = prefix.lastIndexOf('/')
 
     val tmpResult =

@@ -2,13 +2,13 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell._
 import org.enricobn.vfs.IOError._
-import org.enricobn.vfs.{IOError, VirtualFile, VirtualFolder}
+import org.enricobn.vfs.{Authentication, IOError, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
 
 object CdCommand {
 
-  val FOLDER = FolderArgument("folder", false, _.getCurrentUserPermission.execute)
+  val FOLDER = FolderArgument("folder", false, (folder, shell) => folder.getCurrentUserPermission(shell.authentication).right.get.execute)
 
 }
 
@@ -19,6 +19,7 @@ object CdCommand {
 class CdCommand extends VirtualCommandAbstract("cd", CdCommand.FOLDER) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
+                        (implicit authentication: Authentication)
   : Either[IOError, RunContext] = {
 
     val errorOrFolder = args match {
