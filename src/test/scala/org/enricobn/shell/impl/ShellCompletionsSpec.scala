@@ -15,7 +15,7 @@ import scala.language.reflectiveCalls
   * Created by enrico on 12/15/16.
   */
 class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
-  val _vsm = stub[VirtualSecurityManager]
+/*  val _vsm = stub[VirtualSecurityManager]
   val _vum = stub[VirtualUsersManager]
 
   implicit val authentication: Authentication = Authentication("", VirtualUsersManager.ROOT)
@@ -24,8 +24,12 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   (_vsm.checkExecuteAccess(_ : VirtualNode)(_: Authentication)).when(*, *).returns(true)
   (_vsm.checkReadAccess(_: VirtualNode)(_: Authentication)).when(*, *).returns(true)
   (_vum.getUser(_ : Authentication)).when(*).returns(Some(VirtualUsersManager.ROOT))
+*/
 
-  val fs = new InMemoryFS(_vum, _vsm)
+  val fs = new InMemoryFS("root")
+
+  implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
+
   val bin = fs.root.mkdir("bin").right.get
   val home = fs.root.mkdir("home").right.get
   val guest = home.mkdir("guest").right.get
@@ -35,7 +39,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
       val context = stub[VirtualShellContext]
       val completions = new ShellCompletions(context)
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShell(stub[Terminal], _vum, _vsm, new VirtualShellContextImpl(), currentFolder, authentication)
+      val shell = new VirtualShell(stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), currentFolder, authentication)
     }
   }
 

@@ -2,7 +2,6 @@ package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
-import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
@@ -18,14 +17,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     val term = mock[Terminal]
 
     val rootPassword = "root"
-    val vum = new VirtualUsersManagerImpl(rootPassword)
-    val vsm = new VirtualSecurityManagerImpl(vum)
+    val fs = new InMemoryFS(rootPassword)
 
-    implicit val _rootAuthentication: Authentication = vum.logRoot(rootPassword).right.get
-
-    vum.addUser("guest", "guest")
-
-    val fs = new InMemoryFS(vum, vsm)
+    implicit val _rootAuthentication: Authentication = fs.vum.logRoot(rootPassword).right.get
+    fs.vum.addUser("guest", "guest")
 
     val _rootFile = fs.root.touch("rootFile").right.get
     val _bin = fs.root.mkdir("bin").right.get
@@ -46,9 +41,9 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     context.addToPath(_bin)
     context.addToPath(usrBin)
 
-    val authentication = vum.logUser("guest", "guest").right.get
+    val authentication = fs.vum.logUser("guest", "guest").right.get
 
-    val virtualShell = new VirtualShell(term, vum, vsm, context, _guestFolder, authentication)
+    val virtualShell = new VirtualShell(term, fs.vum, fs.vsm, context, _guestFolder, authentication)
 
     text.setContent("Hello\nWorld")
 
@@ -62,7 +57,6 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       val shell = virtualShell
       val terminal = term
       val textFile = text
-      val virtualUsersManager = vum
       val root = fs.root
       val bin = usrBin
       val binFile = _binFile
@@ -93,6 +87,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     (f.terminal.add _).expects(where {
       message: String => message.contains("bin") && message.contains("rwx rwx r-x")
+    })
+
+    (f.terminal.add _).expects(where {
+      message: String => message.contains("etc") && message.contains("rwx rwx r-x")
     })
 
     (f.terminal.add _).expects(where {
@@ -130,8 +128,6 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
   "running text.txt" should "return an error" in {
     val f = fixture
-
-    f.virtualUsersManager.logUser("root", "root")
 
     f.textFile.setExecutable(f.rootAuthentication)
 

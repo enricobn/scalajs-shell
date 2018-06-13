@@ -2,7 +2,6 @@ package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.Authentication
-import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 
 import scala.scalajs.js.annotation.JSExport
@@ -19,14 +18,12 @@ import scala.language.reflectiveCalls
 object TestShellFactory {
   @JSExport
   def create(terminal: Terminal) : VirtualShell = {
-    val vum = new VirtualUsersManagerImpl("root")
-    val vsm = new VirtualSecurityManagerImpl(vum)
-    val fs = new InMemoryFS(vum, vsm)
+    val fs = new InMemoryFS("root")
     val rootFolder = fs.root
     val context = new VirtualShellContextImpl()
-    implicit val rootAuthentication: Authentication = vum.logRoot("root").right.get
+    implicit val rootAuthentication: Authentication = fs.vum.logRoot("root").right.get
 
-    vum.addUser("guest", "guest")
+    fs.vum.addUser("guest", "guest")
 
     val job = for {
       bin <- rootFolder.mkdir("bin").right
@@ -53,8 +50,8 @@ object TestShellFactory {
         null
       case Right(j) =>
         j.path.foreach(context.addToPath)
-        val authentication = vum.logUser("guest", "guest").right.get
-        new VirtualShell(terminal, vum, vsm, context, j.currentFolder, authentication)
+        val authentication = fs.vum.logUser("guest", "guest").right.get
+        new VirtualShell(terminal, fs.vum, fs.vsm, context, j.currentFolder, authentication)
     }
   }
 }

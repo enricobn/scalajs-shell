@@ -1,8 +1,8 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
+import org.enricobn.vfs.Authentication
 import org.enricobn.vfs.inmemory.{InMemoryFS, InMemoryFolder}
-import org.enricobn.vfs.{Authentication, VirtualNode, VirtualSecurityManager, VirtualUsersManager}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -14,6 +14,7 @@ import scala.language.reflectiveCalls
   */
 class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   private def fixture = {
+    /*
     val _vsm = stub[VirtualSecurityManager]
     val _vum = stub[VirtualUsersManager]
 
@@ -23,17 +24,20 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     (_vsm.checkExecuteAccess(_ : VirtualNode)(_: Authentication)).when(*, *).returns(true)
     (_vsm.checkReadAccess(_: VirtualNode)(_: Authentication)).when(*, *).returns(true)
     (_vum.getUser(_ : Authentication)).when(*).returns(Some(VirtualUsersManager.ROOT))
+    */
 
-    val fs = new InMemoryFS(_vum, _vsm)
+    val fs = new InMemoryFS("root")
+
+    implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
+
     val bin = fs.root.mkdir("bin").right.get
     val home = fs.root.mkdir("home").right.get
     val guest = home.mkdir("guest").right.get
 
     new {
       val command = new CdCommand
-      val vum: VirtualUsersManager = _vum
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShell(stub[Terminal], vum, _vsm, new VirtualShellContextImpl(), currentFolder,
+      val shell = new VirtualShell(stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), currentFolder,
         authentication)
     }
   }
@@ -47,7 +51,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   "completion of 'cd /'" should "return the list of root folders" in {
     val f = fixture
     val result = f.command.completion("cd /", f.shell)
-    assert(result == Seq("/bin/", "/home/"), result)
+    assert(result == Seq("/bin/", "/etc/", "/home/"), result)
   }
 
   "completion of 'cd /home/'" should "return /home/guest/" in {
