@@ -27,7 +27,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
                    private var _currentFolder: VirtualFolder, private val initialAuthentication: Authentication) {
   import VirtualShell._
   private var line = ""
-  private val history = new CommandHistory
+  private val history = new CommandHistory(new CommandHistoryFileStore(this))
   private var x = 0
   private var xPrompt = 0
   private var inputHandler: InputHandler = _
@@ -291,10 +291,18 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
         val cmd = event.substring(1)
         // Up
         if (cmd == "[A") {
-          history.prev(line).foreach(processHistory)
+          history.prev(line) match {
+            case Right(Some(command)) => processHistory(command)
+            case Left(error) => showError(error)
+            case _ =>
+          }
         // Down
         } else if (cmd == "[B") {
-          history.succ().foreach(processHistory)
+          history.succ() match {
+            case Right(Some(command)) => processHistory(command)
+            case Left(error) => showError(error)
+            case _ =>
+          }
   //        for (c <- event) {
   //          terminal.add(c.toInt + CRLF)
   //        }
@@ -348,7 +356,9 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
 
   private def processLine(line: String) : Boolean = {
     if (line.nonEmpty) {
-      history.add(line)
+
+      history.add(line).left.foreach(showError)
+
       val words = line.split(" ")
       run(words.head, words.tail.toArray: _*) match {
         case Left(error) =>
@@ -417,6 +427,11 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
         line += event
       }
     }
+  }
+
+  private def showError(error: IOError): Unit = {
+    println(error.message)
+    dom.window.alert("An error occurred: see javascript console for details.")
   }
 
 }
