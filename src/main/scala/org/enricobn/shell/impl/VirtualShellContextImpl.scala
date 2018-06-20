@@ -1,20 +1,28 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{VirtualCommand, VirtualShellContext}
+import org.enricobn.shell.utils.FunctionalUtils
+import org.enricobn.shell.{VirtualCommand, VirtualShellContext, VirtualShellProfile}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
-
-import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by enrico on 12/23/16.
   */
-class VirtualShellContextImpl extends VirtualShellContext {
-  val path = new ArrayBuffer[VirtualFolder]()
+class VirtualShellContextImpl(private val fs: VirtualFS) extends VirtualShellContext {
+  private var profile : VirtualShellProfile = _
 
-  def addToPath(folder: VirtualFolder) {
-    path += folder
-  }
+  override def setProfile(profile: VirtualShellProfile): Unit =
+    this.profile = profile
+
+  override def path(implicit authentication: Authentication): Either[IOError, Seq[VirtualFolder]] =
+    profile.getList("PATH") match {
+      case Right(l) => FunctionalUtils.lift(l.map(fs.root.resolveFolder(_)))
+          .right.map { l => l.filter(_.isDefined).map(_.get)}
+      case Left(error) => Left(error)
+    }
+
+  def addToPath(folder: VirtualFolder): Either[IOError, Unit] =
+    profile.append("PATH", folder.path)
 
   // TODO I don't like it here, has nothing to do with context!
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand)(implicit authentication: Authentication): Either[IOError, VirtualFile] = {
@@ -37,15 +45,16 @@ class VirtualShellContextImpl extends VirtualShellContext {
 
   // TODO I don't like it here, has something about context, but I think its better to let context hold only
   // the state.
-  def findCommand(command: String, currentFolder: VirtualFolder)(implicit authentication: Authentication) : Option[VirtualFile] = {
-    val first: Option[VirtualFile] = path
-      .map(folder => {
+  def findCommand(command: String, currentFolder: VirtualFolder)(implicit authentication: Authentication)
+  : Either[IOError, Option[VirtualFile]] = {
+    for {
+      p <- path.right
+      inCurrent <- currentFolder.findFile(command).right
+    } yield p.map(folder => {
         folder.findFile(command).right.get
       })
       .flatMap(_.toList)
-      .headOption
-
-    first.orElse(currentFolder.findFile(command).right.get)
+      .headOption.orElse(inCurrent)
   }
 
 }

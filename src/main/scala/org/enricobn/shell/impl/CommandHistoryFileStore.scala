@@ -26,12 +26,6 @@ class CommandHistoryFileStore(private val shell: VirtualShell) extends CommandHi
       result <- f.setContent(c( _:+ command))(shell.authentication).toLeft(()).right
     } yield result
 
-  private def content =
-    for {
-      f <- file.right
-      c <- f.contentAs(classOf[StringList])(shell.authentication).right
-    } yield c
-
   override def apply(i: Int): Either[IOError, String] =
     for {
       c <- content.right
@@ -53,5 +47,11 @@ class CommandHistoryFileStore(private val shell: VirtualShell) extends CommandHi
       c <- content.right
       result <- f.setContent(c.value.tail)(shell.authentication).toLeft(()).right
     } yield result
+
+  private def content =
+    for {
+      f <- file.right
+      c <- f.contentAs(classOf[StringList])(shell.authentication).right
+    } yield c
 
 }

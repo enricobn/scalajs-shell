@@ -39,7 +39,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
       val context = stub[VirtualShellContext]
       val completions = new ShellCompletions(context)
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShell(stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), currentFolder, authentication)
+      val shell = new VirtualShell(stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(fs), currentFolder, authentication)
     }
   }
 
@@ -124,7 +124,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     (commandFile.getCurrentUserPermission(_ : Authentication)).when(*).returns(Right(permission))
 
-    (context.findCommand(_ : String, _ : VirtualFolder)(_ : Authentication)).when(name, *, *).returns(Some(commandFile))
+    (context.findCommand(_ : String, _ : VirtualFolder)(_ : Authentication)).when(name, *, *).returns(Right(Some(commandFile)))
     (context.getCommand(_ : VirtualFile)(_ : Authentication)).when(sameRef(commandFile), *).returns(Right(virtualCommand))
 
     commandFile
@@ -135,7 +135,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   private def stubPath(context: VirtualShellContext, files: Set[VirtualFile]): Unit = {
     val bin = stub[VirtualFolder]
     (bin.files(_ : Authentication)).when(*).returns(Right(files))
-    (context.path _).when().returns(Seq(bin))
+    (context.path(_ : Authentication)).when(*).returns(Right(Seq(bin)))
   }
 
 }

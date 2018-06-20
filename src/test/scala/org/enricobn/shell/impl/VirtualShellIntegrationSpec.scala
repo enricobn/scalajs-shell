@@ -29,21 +29,25 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     val _usrFile = _usr.touch("usrFile").right.get
     val usrBin = _usr.mkdir("bin").right.get
     val _homeFolder = fs.root.mkdir("home").right.get
+    val authentication = fs.vum.logUser("guest", "guest").right.get
     val _guestFolder = _homeFolder.mkdir("guest").right.get
+    _guestFolder.chown("guest")
     val text = _guestFolder.touch("text.txt").right.get
     text.chmod(666)
+
     val _binFile = usrBin.touch("binFile").right.get
 
-    val context = new VirtualShellContextImpl()
+    val context = new VirtualShellContextImpl(fs)
+
+    val virtualShell = new VirtualShell(term, fs.vum, fs.vsm, context, _guestFolder, authentication)
+
+    context.setProfile(new VirtualShellFileProfile(virtualShell))
+
     context.createCommandFile(_bin, new LsCommand())
     context.createCommandFile(_bin, new CdCommand())
     context.createCommandFile(_bin, new CatCommand())
     context.addToPath(_bin)
     context.addToPath(usrBin)
-
-    val authentication = fs.vum.logUser("guest", "guest").right.get
-
-    val virtualShell = new VirtualShell(term, fs.vum, fs.vsm, context, _guestFolder, authentication)
 
     text.setContent("Hello\nWorld")
 
@@ -70,6 +74,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
   "ls" should "show text.txt" in {
     val f = fixture
+
+    (f.terminal.add _).expects(where {
+      message: String => message.contains(".profile")
+    })
 
     (f.terminal.add _).expects(where {
       message: String => message.contains("text.txt") && message.contains("rw- rw- rw-")

@@ -43,10 +43,11 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
   def homeFolder: Either[IOError, VirtualFolder] = toFolder(s"/home/${authentication.user}")
 
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
-    // TODO simplify
-    context.findCommand(command, currentFolder)
-      .toRight(new IOError(command + ": No such file")).right
-      .flatMap(runFile(_, args: _*))
+    context.findCommand(command, currentFolder) match {
+      case Right(Some(f)) => runFile(f, args: _*)
+      case Right(None) => s"$command: No such file".ioErrorE
+      case Left(error) => Left(error)
+    }
   }
 
   /**
@@ -78,7 +79,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
     terminal.onInput(inputHandler)
     run(command, args: _*) match {
       case Left(error) =>
-        terminal.add(s"Error starting with command $command ${args.mkString(",")}\n")
+        terminal.add(s"Error starting with command $command ${args.mkString(",")}: ${error.message}\n")
         terminal.flush()
         prompt()
       case Right(makePrompt) =>

@@ -20,17 +20,20 @@ object TestShellFactory {
   def create(terminal: Terminal) : VirtualShell = {
     val fs = new InMemoryFS("root")
     val rootFolder = fs.root
-    val context = new VirtualShellContextImpl()
+    val context = new VirtualShellContextImpl(fs)
     implicit val rootAuthentication: Authentication = fs.vum.logRoot("root").right.get
 
     fs.vum.addUser("guest", "guest")
 
     val job = for {
       bin <- rootFolder.mkdir("bin").right
+      _ <- bin.chown("guest").toLeft(()).right
       usr <- rootFolder.mkdir("usr").right
       usrBin <- usr.mkdir("bin").right
+      _ <- usrBin.chown("guest").toLeft(()).right
       home <- rootFolder.mkdir("home").right
       homeGuest <- home.mkdir("guest").right
+      _ <- homeGuest.chown("guest").toLeft(()).right
       text <- homeGuest.touch("text.txt").right
       _ <- text.setContent("Hello\nWorld").toLeft(None).right
       _ <- text.chmod(666).toLeft(None).right
@@ -49,9 +52,11 @@ object TestShellFactory {
         terminal.flush()
         null
       case Right(j) =>
-        j.path.foreach(context.addToPath)
         val authentication = fs.vum.logUser("guest", "guest").right.get
-        new VirtualShell(terminal, fs.vum, fs.vsm, context, j.currentFolder, authentication)
+        val shell = new VirtualShell(terminal, fs.vum, fs.vsm, context, j.currentFolder, authentication)
+        context.setProfile(new VirtualShellFileProfile(shell))
+        j.path.foreach(context.addToPath)
+        shell
     }
   }
 }
