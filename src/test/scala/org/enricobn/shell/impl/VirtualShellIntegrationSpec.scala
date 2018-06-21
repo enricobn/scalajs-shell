@@ -2,7 +2,7 @@ package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
-import org.enricobn.vfs.inmemory.InMemoryFS
+import org.enricobn.vfs.impl.UnixLikeInMemoryFS
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -13,63 +13,60 @@ import scala.language.reflectiveCalls
   * Created by enrico on 12/12/16.
   */
 class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matchers {
+
+  import org.enricobn.vfs.utils.Utils.RightBiasedEither
+
   def fixture = {
     val term = mock[Terminal]
 
     val rootPassword = "root"
-    val fs = new InMemoryFS(rootPassword)
 
-    implicit val _rootAuthentication: Authentication = fs.vum.logRoot(rootPassword).right.get
-    fs.vum.addUser("guest", "guest")
+    val _fs = UnixLikeInMemoryFS(rootPassword).right.get
+    implicit val _rootAuthentication: Authentication = _fs.vum.logRoot(rootPassword).right.get
 
-    val _rootFile = fs.root.touch("rootFile").right.get
-    val _bin = fs.root.mkdir("bin").right.get
+    val init = for {
+      _ <- _fs.vum.addUser("guest", "guest").toLeft(())
+      _authentication <- _fs.vum.logUser("guest", "guest")
+      _rootFile <- _fs.root.touch("rootFile")
+      _usrFile <- _fs.usr.touch("usrFile")
+      guestHome <- _fs.home.resolveFolderOrError("guest")
+      text <- guestHome.touch("text.txt")
+      _ <- text.chmod(666).toLeft(())
+      _ <- text.setContent("Hello\nWorld").toLeft(())
+      _binFile <- _fs.usrBin.touch("binFile")
 
-    val _usr = fs.root.mkdir("usr").right.get
-    val _usrFile = _usr.touch("usrFile").right.get
-    val usrBin = _usr.mkdir("bin").right.get
-    val _homeFolder = fs.root.mkdir("home").right.get
-    val authentication = fs.vum.logUser("guest", "guest").right.get
-    val _guestFolder = _homeFolder.mkdir("guest").right.get
-    _guestFolder.chown("guest")
-    val text = _guestFolder.touch("text.txt").right.get
-    text.chmod(666)
+      context = new VirtualShellContextImpl(_fs)
+      virtualShell = new VirtualShell(term, _fs.vum, _fs.vsm, context, guestHome, _authentication)
+      _ = context.setProfile(new VirtualShellFileProfile(virtualShell))
 
-    val _binFile = usrBin.touch("binFile").right.get
+      _ <- context.createCommandFiles(_fs.bin, new LsCommand(), new CatCommand(), new CdCommand())
 
-    val context = new VirtualShellContextImpl(fs)
+      _ <- context.addToPath(_fs.bin)
+      _ <- context.addToPath(_fs.usrBin)
 
-    val virtualShell = new VirtualShell(term, fs.vum, fs.vsm, context, _guestFolder, authentication)
+      _ = (term.add _).expects(where {message: String => message.contains("/home/guest")})
+      _ = (term.flush _).expects().anyNumberOfTimes()
+      _ = (term.onInput _).expects(*).anyNumberOfTimes()
 
-    context.setProfile(new VirtualShellFileProfile(virtualShell))
+      _ = virtualShell.start()
 
-    context.createCommandFile(_bin, new LsCommand())
-    context.createCommandFile(_bin, new CdCommand())
-    context.createCommandFile(_bin, new CatCommand())
-    context.addToPath(_bin)
-    context.addToPath(usrBin)
-
-    text.setContent("Hello\nWorld")
-
-    (term.add _).expects(where {message: String => message.contains("/home/guest")})
-    (term.flush _).expects().anyNumberOfTimes()
-    (term.onInput _).expects(*).anyNumberOfTimes()
-
-    virtualShell.start()
-
-    new {
+    } yield new {
+      val fs = _fs
       val shell = virtualShell
       val terminal = term
       val textFile = text
-      val root = fs.root
-      val bin = usrBin
       val binFile = _binFile
-      val usr = _usr
       val rootFile = _rootFile
       val usrFile = _usrFile
-      val guest = _guestFolder
+      val guest = guestHome
       val rootAuthentication = _rootAuthentication
     }
+
+    init match {
+      case Right(f) => f
+      case Left(error) => fail(error.message)
+    }
+
   }
 
   "ls" should "show text.txt" in {
@@ -113,6 +110,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       message: String => message.contains("rootFile") && message.contains("rw- rw- r--")
     })
 
+    (f.terminal.add _).expects(where {
+      message: String => message.contains("var") && message.contains("rwx rwx r-x")
+    })
+
     (f.terminal.removeOnInputs _).expects().times.repeat(2)
     assertPrompt(f.shell.run("cd", "/"))
 
@@ -152,7 +153,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val folder = f.shell.toFolder("/")
 
-    assert(folder.right.get == f.root)
+    assert(folder.right.get == f.fs.root)
   }
 
   "toFolder of absolute path" should "work" in {
@@ -160,37 +161,37 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val folder = f.shell.toFolder("/usr/bin")
 
-    assert(folder.right.get == f.bin)
+    assert(folder.right.get == f.fs.usrBin)
   }
 
   "toFolder of relative path" should "work" in {
     val f = fixture
 
-    f.shell.currentFolder = f.usr
+    f.shell.currentFolder = f.fs.usr
 
     val folder = f.shell.toFolder("bin")
 
-    assert(folder.right.get == f.bin)
+    assert(folder.right.get == f.fs.usrBin)
   }
 
   "toFolder of parent path" should "work" in {
     val f = fixture
 
-    f.shell.currentFolder = f.bin
+    f.shell.currentFolder = f.fs.bin
 
     val folder = f.shell.toFolder("../bin")
 
-    assert(folder.right.get == f.bin)
+    assert(folder.right.get == f.fs.bin)
   }
 
   "toFolder of self" should "work" in {
     val f = fixture
 
-    f.shell.currentFolder = f.usr
+    f.shell.currentFolder = f.fs.usr
 
     val folder = f.shell.toFolder("./bin")
 
-    assert(folder.right.get == f.bin)
+    assert(folder.right.get == f.fs.usrBin)
   }
 
   "findFolder of not existent folder" should "return Right(None)" in {
@@ -220,7 +221,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "toFile of relative path" should "work" in {
     val f = fixture
 
-    f.shell.currentFolder = f.bin
+    f.shell.currentFolder = f.fs.usrBin
 
     val file = f.shell.toFile("../usrFile")
 
@@ -230,7 +231,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "findFile of parent of root" should "return Right(None)" in {
     val f = fixture
 
-    f.shell.currentFolder = f.root
+    f.shell.currentFolder = f.fs.root
 
     val file = f.shell.findFile("..")
 
@@ -240,7 +241,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "findFile of parent of parent of root" should "return Right(None)" in {
     val f = fixture
 
-    f.shell.currentFolder = f.root
+    f.shell.currentFolder = f.fs.root
 
     val file = f.shell.findFile("../..")
 
@@ -250,7 +251,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "findFolder of ../.. of usr" should "return Right(None)" in {
     val f = fixture
 
-    f.shell.currentFolder = f.usr
+    f.shell.currentFolder = f.fs.usr
 
     val file = f.shell.findFolder("../..")
 
@@ -260,17 +261,17 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "findFolder of ../.. of bin" should "return root" in {
     val f = fixture
 
-    f.shell.currentFolder = f.bin
+    f.shell.currentFolder = f.fs.usrBin
 
     val folder = f.shell.findFolder("../..")
 
-    assert(Right(Some(f.root)) == folder)
+    assert(Right(Some(f.fs.root)) == folder)
   }
 
   "findFile of ../../usr/bin/binFile from bin" should "return binFile" in {
     val f = fixture
 
-    f.shell.currentFolder = f.bin
+    f.shell.currentFolder = f.fs.usrBin
 
     val file = f.shell.findFile("../../usr/bin/binFile")
 
@@ -280,7 +281,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "find of ../..." should "not work, but don't throw an Exception" in {
     val f = fixture
 
-    f.shell.currentFolder = f.bin
+    f.shell.currentFolder = f.fs.bin
 
     val file = f.shell.findFile("../.../")
 

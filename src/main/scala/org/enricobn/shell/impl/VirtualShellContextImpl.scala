@@ -1,9 +1,9 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.utils.FunctionalUtils
 import org.enricobn.shell.{VirtualCommand, VirtualShellContext, VirtualShellProfile}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
+import org.enricobn.vfs.utils.Utils
 
 /**
   * Created by enrico on 12/23/16.
@@ -16,7 +16,7 @@ class VirtualShellContextImpl(private val fs: VirtualFS) extends VirtualShellCon
 
   override def path(implicit authentication: Authentication): Either[IOError, Seq[VirtualFolder]] =
     profile.getList("PATH") match {
-      case Right(l) => FunctionalUtils.lift(l.map(fs.root.resolveFolder(_)))
+      case Right(l) => Utils.lift(l.map(fs.root.resolveFolder(_)))
           .right.map { l => l.filter(_.isDefined).map(_.get)}
       case Left(error) => Left(error)
     }

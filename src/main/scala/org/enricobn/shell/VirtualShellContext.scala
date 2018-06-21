@@ -1,5 +1,6 @@
 package org.enricobn.shell
 
+import org.enricobn.vfs.utils.Utils
 import org.enricobn.vfs.{Authentication, IOError, VirtualFile, VirtualFolder}
 
 /**
@@ -19,5 +20,8 @@ trait VirtualShellContext {
 
   def findCommand(command: String, currentFolder: VirtualFolder)(implicit authentication: Authentication)
   : Either[IOError, Option[VirtualFile]]
+
+  def createCommandFiles(folder: VirtualFolder, commands: VirtualCommand*)(implicit rootAuthentication: Authentication): Either[IOError, List[VirtualFile]] =
+    Utils.lift(commands.map(createCommandFile(folder, _)))
 
 }
