@@ -11,7 +11,7 @@ import org.enricobn.vfs.utils.Utils
 class VirtualShellContextImpl(private val fs: VirtualFS) extends VirtualShellContext {
   private var profile : VirtualShellProfile = _
 
-  override def setProfile(profile: VirtualShellProfile): Unit =
+  def setProfile(profile: VirtualShellProfile): Unit =
     this.profile = profile
 
   override def path(implicit authentication: Authentication): Either[IOError, Seq[VirtualFolder]] =

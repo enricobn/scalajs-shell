@@ -2,7 +2,8 @@ package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.Authentication
-import org.enricobn.vfs.inmemory.InMemoryFS
+import org.enricobn.vfs.impl.UnixLikeInMemoryFS
+import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -18,44 +19,31 @@ import scala.language.reflectiveCalls
 object TestShellFactory {
   @JSExport
   def create(terminal: Terminal) : VirtualShell = {
-    val fs = new InMemoryFS("root")
-    val rootFolder = fs.root
-    val context = new VirtualShellContextImpl(fs)
+    val fs = UnixLikeInMemoryFS("root").right.get
     implicit val rootAuthentication: Authentication = fs.vum.logRoot("root").right.get
+    val rootFolder = fs.root
 
     fs.vum.addUser("guest", "guest")
 
-    val job = for {
-      bin <- rootFolder.mkdir("bin").right
-      _ <- bin.chown("guest").toLeft(()).right
-      usr <- rootFolder.mkdir("usr").right
-      usrBin <- usr.mkdir("bin").right
-      _ <- usrBin.chown("guest").toLeft(()).right
-      home <- rootFolder.mkdir("home").right
-      homeGuest <- home.mkdir("guest").right
-      _ <- homeGuest.chown("guest").toLeft(()).right
-      text <- homeGuest.touch("text.txt").right
-      _ <- text.setContent("Hello\nWorld").toLeft(None).right
+    val shellE = for {
+      homeGuest <- rootFolder.resolveFolderOrError("/home/guest")
+      text <- homeGuest.touch("text.txt")
+      _ <- text.setContent("Hello\nWorld").toLeft(None)
       _ <- text.chmod(666).toLeft(None).right
-      _ <- context.createCommandFile(bin, new LsCommand()).right
-      _ <- context.createCommandFile(bin, new CdCommand()).right
-      _ <- context.createCommandFile(bin, new CatCommand()).right
-    } yield new {
-      val path = List(bin, usrBin)
-      val textFile = text
-      val currentFolder = homeGuest
-    }
+      authentication <- fs.vum.logUser("guest", "guest")
 
-    job match {
+      shell = UnixLikeVirtualShell(fs, terminal, homeGuest, authentication)
+
+      _ <- shell.context.createCommandFiles(fs.bin, new LsCommand(), new CdCommand(), new CatCommand())
+      _ = List(fs.bin, fs.usrBin).foreach(shell.context.addToPath)
+    } yield shell
+
+    shellE match {
       case Left(error) =>
         terminal.add(error.message + CRLF)
         terminal.flush()
         null
-      case Right(j) =>
-        val authentication = fs.vum.logUser("guest", "guest").right.get
-        val shell = new VirtualShell(terminal, fs.vum, fs.vsm, context, j.currentFolder, authentication)
-        context.setProfile(new VirtualShellFileProfile(shell))
-        j.path.foreach(context.addToPath)
+      case Right(shell) =>
         shell
     }
   }

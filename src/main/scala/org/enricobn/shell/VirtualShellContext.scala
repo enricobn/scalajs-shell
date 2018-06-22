@@ -8,8 +8,6 @@ import org.enricobn.vfs.{Authentication, IOError, VirtualFile, VirtualFolder}
   */
 trait VirtualShellContext {
 
-  def setProfile(profile: VirtualShellProfile)
-
   def path(implicit authentication: Authentication) : Either[IOError, Seq[VirtualFolder]]
 
   def addToPath(folder: VirtualFolder) : Either[IOError, Unit]

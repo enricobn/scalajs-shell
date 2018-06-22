@@ -6,7 +6,6 @@ DOING
 NEXT
 -----
 - simplify the creation of a shell:
-  - make a factory method (I don't like VirtualShellContextImpl.setProfile)
   - move createCommandFile, getCommand (to a utility Object?), findCommand (to VIrtualShell?) from VirtualShellContext
 
 - I don't like that completions (from Completions), for files and folders, lists all path and not only names.

@@ -5,6 +5,7 @@ import org.enricobn.terminal.Terminal._
 import org.enricobn.terminal.{StringPub, Terminal, TerminalOperations}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
+import org.enricobn.vfs.impl.UnixLikeInMemoryFS
 import org.scalajs.dom
 
 import scala.collection.mutable
@@ -15,6 +16,20 @@ import scala.scalajs.js.timers._
 /**
   * Created by enrico on 12/4/16.
   */
+object UnixLikeVirtualShell {
+
+  def apply(fs: UnixLikeInMemoryFS, terminal: Terminal, currentFolder: VirtualFolder, initialAuthentication: Authentication): VirtualShell = {
+    val context = new VirtualShellContextImpl(fs)
+
+    val shell = new VirtualShell(terminal, fs.vum, fs.vsm, context, currentFolder, initialAuthentication)
+
+    context.setProfile(new VirtualShellFileProfile(shell))
+
+    shell
+  }
+
+}
+
 object VirtualShell {
 
   private val INTERACTIVE_INTERVAL: Int = 500
@@ -40,7 +55,7 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
 
   def currentFolder: VirtualFolder = _currentFolder
 
-  def homeFolder: Either[IOError, VirtualFolder] = toFolder(s"/home/${authentication.user}")
+  def homeFolder: Either[IOError, VirtualFolder] = currentFolder.resolveFolderOrError(s"/home/${authentication.user}")
 
   def run(command: String, args: String*) : Either[IOError, Boolean] = {
     context.findCommand(command, currentFolder) match {
@@ -95,32 +110,14 @@ class VirtualShell(terminal: Terminal, val vum: VirtualUsersManager, val vsm: Vi
     */
   def findFolder(path: String): Either[IOError,Option[VirtualFolder]] = {
     val virtualPath = VirtualPath(path)
-    val first: Either[IOError, Option[VirtualFolder]] =
-      virtualPath.fragments.head match {
-        case RootFragment() => Right(Some(currentFolder.root))
-        case SimpleFragment("~") => homeFolder.right.map(Some(_))
-        case _ => Right(Some(currentFolder))
-      }
 
-    val fragmentsToProcess =
-      virtualPath.fragments.head match {
-        case RootFragment() => virtualPath.fragments.tail
-        case SimpleFragment("~") => virtualPath.fragments.tail
-        case _ => virtualPath.fragments
-      }
+    val resolvedPath = virtualPath.fragments.head match {
+      case SimpleFragment("~") => homeFolder.right.map(_.path).right.get + VirtualFS.pathSeparator +
+        VirtualPath(virtualPath.fragments.tail).path
+      case _ => path
+    }
 
-    fragmentsToProcess.foldLeft(first)((actualFolderE, fragment) =>
-      actualFolderE match {
-        case Right(Some(actualFolder)) =>
-          fragment match {
-            case SelfFragment() => Right(Some(actualFolder))
-            case ParentFragment() => Right(actualFolder.parent)
-            case simple: SimpleFragment => actualFolder.findFolder(simple.name)
-            case _ => Left(IOError(s"Invalid path: '$path'"))
-          }
-        case n@Right(None) => n
-        case error => error
-      })
+    currentFolder.resolveFolder(resolvedPath)
   }
 
   /**
