@@ -14,18 +14,6 @@ import scala.language.reflectiveCalls
   */
 class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   private def fixture = {
-    /*
-    val _vsm = stub[VirtualSecurityManager]
-    val _vum = stub[VirtualUsersManager]
-
-    implicit val authentication: Authentication = Authentication("", VirtualUsersManager.ROOT)
-
-    (_vsm.checkWriteAccess(_ : VirtualNode)(_ : Authentication)).when(*, *).returns(true)
-    (_vsm.checkExecuteAccess(_ : VirtualNode)(_: Authentication)).when(*, *).returns(true)
-    (_vsm.checkReadAccess(_: VirtualNode)(_: Authentication)).when(*, *).returns(true)
-    (_vum.getUser(_ : Authentication)).when(*).returns(Some(VirtualUsersManager.ROOT))
-    */
-
     val fs = new InMemoryFS("root")
 
     implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
@@ -37,7 +25,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     new {
       val command = new CdCommand
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShell(stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(fs), currentFolder,
+      val shell = new VirtualShellImpl(stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(fs), currentFolder,
         authentication)
     }
   }

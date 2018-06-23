@@ -1,5 +1,6 @@
 package org.enricobn.shell.impl
 
+import org.enricobn.shell.VirtualCommandOperations
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.Authentication
 import org.enricobn.vfs.impl.UnixLikeInMemoryFS
@@ -34,7 +35,7 @@ object TestShellFactory {
 
       shell = UnixLikeVirtualShell(fs, terminal, homeGuest, authentication)
 
-      _ <- shell.context.createCommandFiles(fs.bin, new LsCommand(), new CdCommand(), new CatCommand())
+      _ <- VirtualCommandOperations.createCommandFiles(fs.bin, new LsCommand(), new CdCommand(), new CatCommand())
       _ = List(fs.bin, fs.usrBin).foreach(shell.context.addToPath)
     } yield shell
 

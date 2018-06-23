@@ -5,9 +5,6 @@ DOING
 
 NEXT
 -----
-- simplify the creation of a shell:
-  - move createCommandFile, getCommand (to a utility Object?), findCommand (to VIrtualShell?) from VirtualShellContext
-
 - I don't like that completions (from Completions), for files and folders, lists all path and not only names.
   For example given the files:
   /usr/bin/one.txt

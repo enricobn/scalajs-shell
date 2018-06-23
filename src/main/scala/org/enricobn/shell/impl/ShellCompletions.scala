@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.VirtualShellContext
+import org.enricobn.shell.{VirtualCommandOperations, VirtualShellContext}
 import org.enricobn.vfs.Authentication
 import org.enricobn.vfs.IOError._
 
@@ -32,9 +32,9 @@ class ShellCompletions(context: VirtualShellContext) {
           .map(_.name).toList
       } else {
         val fromCommand = for {
-            file <- context.findCommand(parsedLine.commandName, shell.currentFolder).right
+            file <- shell.findCommand(parsedLine.commandName, shell.currentFolder).right
             command <- file match {
-              case Some(f) => context.getCommand(f).right
+              case Some(f) => VirtualCommandOperations.getCommand(f).right
               case _ => s"Cannot find command: ${parsedLine.commandName}".ioErrorE.right
             }
           } yield command.completion(line, shell)

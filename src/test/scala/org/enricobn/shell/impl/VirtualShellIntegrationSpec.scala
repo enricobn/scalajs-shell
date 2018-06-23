@@ -1,5 +1,6 @@
 package org.enricobn.shell.impl
 
+import org.enricobn.shell.VirtualCommandOperations
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
 import org.enricobn.vfs.impl.UnixLikeInMemoryFS
@@ -36,10 +37,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       _binFile <- _fs.usrBin.touch("binFile")
 
       context = new VirtualShellContextImpl(_fs)
-      virtualShell = new VirtualShell(term, _fs.vum, _fs.vsm, context, guestHome, _authentication)
+      virtualShell = new VirtualShellImpl(term, _fs.vum, _fs.vsm, context, guestHome, _authentication)
       _ = context.setProfile(new VirtualShellFileProfile(virtualShell))
 
-      _ <- context.createCommandFiles(_fs.bin, new LsCommand(), new CatCommand(), new CdCommand())
+      _ <- VirtualCommandOperations.createCommandFiles(_fs.bin, new LsCommand(), new CatCommand(), new CdCommand())
 
       _ <- context.addToPath(_fs.bin)
       _ <- context.addToPath(_fs.usrBin)
