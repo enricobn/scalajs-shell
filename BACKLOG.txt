@@ -1,7 +1,5 @@
 DOING
 ------
-- on branch authentication: authentication in scalajs-vfs
-  - on branch passwd: passwd in scalajs-vfs
 
 NEXT
 -----
