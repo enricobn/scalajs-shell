@@ -36,14 +36,12 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       _ <- text.setContent("Hello\nWorld").toLeft(())
       _binFile <- _fs.usrBin.touch("binFile")
 
-      context = new VirtualShellContextImpl(_fs)
-      virtualShell = new VirtualShellImpl(term, _fs.vum, _fs.vsm, context, guestHome, _authentication)
-      _ = context.setProfile(new VirtualShellFileProfile(virtualShell))
+      virtualShell = UnixLikeVirtualShell(_fs, term, guestHome, _authentication)
 
       _ <- VirtualCommandOperations.createCommandFiles(_fs.bin, new LsCommand(), new CatCommand(), new CdCommand())
 
-      _ <- context.addToPath(_fs.bin)
-      _ <- context.addToPath(_fs.usrBin)
+      _ <- virtualShell.context.addToPath(_fs.bin)
+      _ <- virtualShell.context.addToPath(_fs.usrBin)
 
       _ = (term.add _).expects(where {message: String => message.contains("/home/guest")})
       _ = (term.flush _).expects().anyNumberOfTimes()

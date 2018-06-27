@@ -23,7 +23,7 @@ object UnixLikeVirtualShell {
 
     val shell = new VirtualShellImpl(terminal, fs.vum, fs.vsm, context, currentFolder, initialAuthentication)
 
-    context.setProfile(new VirtualShellFileProfile(shell))
+    context.setUserProfile(new VirtualShellUserProfile(shell))
 
     shell
   }
