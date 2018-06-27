@@ -3,7 +3,6 @@ package org.enricobn.shell.impl
 import org.enricobn.shell.VirtualCommandOperations
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
-import org.enricobn.vfs.impl.UnixLikeInMemoryFS
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -39,9 +38,6 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
       virtualShell = UnixLikeVirtualShell(_fs, term, guestHome, _authentication)
 
       _ <- VirtualCommandOperations.createCommandFiles(_fs.bin, new LsCommand(), new CatCommand(), new CdCommand())
-
-      _ <- virtualShell.context.addToPath(_fs.bin)
-      _ <- virtualShell.context.addToPath(_fs.usrBin)
 
       _ = (term.add _).expects(where {message: String => message.contains("/home/guest")})
       _ = (term.flush _).expects().anyNumberOfTimes()

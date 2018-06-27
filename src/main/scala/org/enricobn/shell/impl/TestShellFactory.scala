@@ -3,7 +3,6 @@ package org.enricobn.shell.impl
 import org.enricobn.shell.VirtualCommandOperations
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.Authentication
-import org.enricobn.vfs.impl.UnixLikeInMemoryFS
 import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
 import scala.scalajs.js.annotation.JSExport
@@ -18,6 +17,7 @@ import scala.language.reflectiveCalls
   */
 @JSExport("TestShellFactory")
 object TestShellFactory {
+
   @JSExport
   def create(terminal: Terminal) : VirtualShell = {
     val fs = UnixLikeInMemoryFS("root").right.get
@@ -36,7 +36,6 @@ object TestShellFactory {
       shell = UnixLikeVirtualShell(fs, terminal, homeGuest, authentication)
 
       _ <- VirtualCommandOperations.createCommandFiles(fs.bin, new LsCommand(), new CdCommand(), new CatCommand())
-      _ = List(fs.bin, fs.usrBin).foreach(shell.context.addToPath)
     } yield shell
 
     shellE match {

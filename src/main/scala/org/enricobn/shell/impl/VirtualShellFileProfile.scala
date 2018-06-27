@@ -41,7 +41,6 @@ abstract class VirtualShellFileProfile(authentication: () => Authentication) ext
 
   def file : Either[IOError, VirtualFile]
 
-
   override def keys: Either[IOError, Set[String]] =
     content match {
       case Right(c) => Right(c.value.keys.toSet)

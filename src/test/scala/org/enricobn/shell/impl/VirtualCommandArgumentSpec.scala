@@ -35,7 +35,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
       val rootFile : VirtualFile = _fs.root.touch("rootFile").right.get
       val usrFile : VirtualFile = usr.touch("usrFile").right.get
       val binFile : VirtualFile = bin.touch("binFile").right.get
-      val shell = new VirtualShellImpl(stub[Terminal], _fs.vum, _fs.vsm, new VirtualShellContextImpl(fs), bin, authentication)
+      val shell = new VirtualShellImpl(fs, stub[Terminal], _fs.vum, _fs.vsm, new VirtualShellContextImpl(), bin, authentication)
     }
 
     f

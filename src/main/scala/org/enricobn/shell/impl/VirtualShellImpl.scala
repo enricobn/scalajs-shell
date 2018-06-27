@@ -5,7 +5,6 @@ import org.enricobn.terminal.Terminal._
 import org.enricobn.terminal.{StringPub, Terminal, TerminalOperations}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
-import org.enricobn.vfs.impl.UnixLikeInMemoryFS
 import org.scalajs.dom
 
 import scala.collection.mutable
@@ -19,11 +18,13 @@ import scala.scalajs.js.timers._
 object UnixLikeVirtualShell {
 
   def apply(fs: UnixLikeInMemoryFS, terminal: Terminal, currentFolder: VirtualFolder, initialAuthentication: Authentication): VirtualShell = {
-    val context = new VirtualShellContextImpl(fs)
+    val context = new VirtualShellContextImpl()
 
-    val shell = new VirtualShellImpl(terminal, fs.vum, fs.vsm, context, currentFolder, initialAuthentication)
+    val shell = new VirtualShellImpl(fs, terminal, fs.vum, fs.vsm, context, currentFolder, initialAuthentication)
 
     context.setUserProfile(new VirtualShellUserProfile(shell))
+
+    context.setGlobalProfile(new VirtualShellGlobalProfile(fs, () => shell.authentication))
 
     shell
   }
@@ -38,7 +39,7 @@ object VirtualShellImpl {
 
 @JSExport(name="VirtualShell")
 @JSExportAll
-class VirtualShellImpl(val terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager, val context: VirtualShellContext,
+class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager, val context: VirtualShellContext,
                    private var _currentFolder: VirtualFolder, private val initialAuthentication: Authentication) extends VirtualShell {
   import VirtualShellImpl._
   private var line = ""

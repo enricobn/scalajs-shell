@@ -39,15 +39,17 @@ case class CascadeShellProfile(profiles: Seq[VirtualShellProfileRead]) extends V
             } else {
               apply(variable) match {
                 case varValue@Right(Some(_)) => varValue
-                // TODO ERROR
                 case _ => parentProfile(variable)
               }
             }
 
           val fromParent = resolvedValue match {
             case Right(Some(pv)) => pv.replace("\\", "\\\\")
-            // TODO ERROR
-            case _ => ""
+            case Right(None) => ""
+            case Left(error) =>
+              // TODO ERROR
+              println(s"Error resolving variable '$variable': ${error.message}")
+              ""
           }
           val subExpr = Pattern.compile(Pattern.quote(matcher.group(0)))
           text = subExpr.matcher(text).replaceAll(fromParent)

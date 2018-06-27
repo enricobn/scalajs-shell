@@ -25,7 +25,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     new {
       val command = new CdCommand
       val currentFolder: InMemoryFolder = guest
-      val shell = new VirtualShellImpl(stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(fs), currentFolder,
+      val shell = new VirtualShellImpl(fs, stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), currentFolder,
         authentication)
     }
   }

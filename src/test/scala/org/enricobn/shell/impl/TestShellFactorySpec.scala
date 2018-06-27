@@ -18,7 +18,7 @@ class TestShellFactorySpec extends FlatSpec with MockFactory with Matchers {
 
   "context" should "contain /bin /usr/bin" in {
     val shell = TestShellFactory.create(stub[Terminal])
-    assert(shell.context.path(shell.authentication).right.get.map(_.path) == List("/bin", "/usr/bin"))
+    assert(shell.context.path(shell.fs)(shell.authentication).right.get.map(_.path) == List("/bin", "/usr/bin"))
   }
 
   "ls" should "be fine" in {

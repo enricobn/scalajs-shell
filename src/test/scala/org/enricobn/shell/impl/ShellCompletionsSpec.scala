@@ -2,7 +2,6 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell._
 import org.enricobn.vfs._
-import org.enricobn.vfs.impl.UnixLikeInMemoryFS
 import org.scalamock.matchers.ArgThat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
@@ -114,7 +113,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   private def stubPath(context: VirtualShellContext, files: Set[VirtualFile]): Unit = {
     val bin = stub[VirtualFolder]
     (bin.files(_ : Authentication)).when(*).returns(Right(files))
-    (context.path(_ : Authentication)).when(*).returns(Right(Seq(bin)))
+    (context.path(_ : VirtualFS)(_ : Authentication)).when(*, *).returns(Right(Seq(bin)))
   }
 
 }

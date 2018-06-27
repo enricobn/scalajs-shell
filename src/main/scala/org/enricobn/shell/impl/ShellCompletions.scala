@@ -25,7 +25,7 @@ class ShellCompletions(context: VirtualShellContext) {
 
     val proposals =
       if (parsedLine.incompleteCommand) {
-        context.path.right.get
+        context.path(shell.fs).right.get
           .flatMap(_.files.right.get)
           .filter(_.getCurrentUserPermission.right.exists(_.execute))
           .filter(_.name.startsWith(parsedLine.commandName))

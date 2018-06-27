@@ -5,6 +5,9 @@ import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
 
 trait VirtualShell {
+
+  val fs: VirtualFS
+
   val terminal: Terminal
 
   val vum: VirtualUsersManager
@@ -99,7 +102,7 @@ trait VirtualShell {
   def findCommand(command: String, currentFolder: VirtualFolder)
   : Either[IOError, Option[VirtualFile]] = {
     for {
-      p <- context.path(authentication).right
+      p <- context.path(fs)(authentication).right
       inCurrent <- currentFolder.findFile(command)(authentication).right
     } yield p.map(folder => {
       folder.findFile(command)(authentication).right.get
