@@ -43,5 +43,5 @@ class UnixLikeInMemoryFS private (private val fs: InMemoryFS,
 
   val vum: VirtualUsersManager = fs.vum
   val vsm: VirtualSecurityManager = fs.vsm
-
+  val notifier: VirtualFSNotifier = fs.notifier
 }
