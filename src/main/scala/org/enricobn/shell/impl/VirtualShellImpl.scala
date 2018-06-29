@@ -10,7 +10,6 @@ import org.scalajs.dom
 import scala.collection.mutable
 import scala.language.implicitConversions
 import scala.scalajs.js.annotation.{JSExport, JSExportAll}
-import scala.scalajs.js.timers._
 
 /**
   * Created by enrico on 12/4/16.
@@ -31,17 +30,10 @@ object UnixLikeVirtualShell {
 
 }
 
-object VirtualShellImpl {
-
-  private val INTERACTIVE_INTERVAL: Int = 500
-
-}
-
 @JSExport(name="VirtualShell")
 @JSExportAll
 class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager, val context: VirtualShellContext,
                    private var _currentFolder: VirtualFolder, private val initialAuthentication: Authentication) extends VirtualShell {
-  import VirtualShellImpl._
   private var line = ""
   private val history = new CommandHistory(new CommandHistoryFileStore(this))
   private var x = 0
@@ -152,7 +144,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       case Right(runContext) =>
         Right(
           if (runContext.interactive) {
-            setTimeout(INTERACTIVE_INTERVAL) {
+            dom.window.requestAnimationFrame { time: Double =>
               runningInteractiveCommands = true
               updateRunContext(runContext)
             }
@@ -181,9 +173,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     } else {
       dom.window.requestAnimationFrame((time: Double) => {
         runContext.update()
-        setTimeout(INTERACTIVE_INTERVAL) {
-          updateRunContext(runContext)
-        }
+        updateRunContext(runContext)
       })
     }
   }
