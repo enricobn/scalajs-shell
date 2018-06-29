@@ -11,23 +11,11 @@ import scala.language.reflectiveCalls
 class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers {
 
   private def fixture = {
-    /*
-    val _vsm = stub[VirtualSecurityManager]
-    val _vum = stub[VirtualUsersManager]
-
-    implicit val authentication: Authentication = Authentication("", "foo")
-
-    (_vsm.checkWriteAccess(_ : VirtualNode)(_ : Authentication)).when(*, *).returns(true)
-    (_vsm.checkExecuteAccess(_ : VirtualNode)(_: Authentication)).when(*, *).returns(true)
-    (_vsm.checkReadAccess(_: VirtualNode)(_: Authentication)).when(*, *).returns(true)
-    //(_vum.getUser(_ : Authentication)).when(*).returns(Some(VirtualUsersManager.ROOT))
-    */
-
     val rootPassword = "rootPassword"
-    val _fs = new InMemoryFS(rootPassword)
+    val _fs = InMemoryFS(rootPassword).right.get
     implicit val authentication: Authentication = _fs.vum.logRoot(rootPassword).right.get
 
-    val f = new {
+    new {
       val fs = _fs
       val usersManager: VirtualUsersManager = _fs.vum
       val usr : VirtualFolder = _fs.root.mkdir("usr").right.get
@@ -37,8 +25,6 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
       val binFile : VirtualFile = bin.touch("binFile").right.get
       val shell = new VirtualShellImpl(fs, stub[Terminal], _fs.vum, _fs.vsm, new VirtualShellContextImpl(), bin, authentication)
     }
-
-    f
   }
 
   "completion of FileArgument" should "be fine" in {

@@ -14,7 +14,7 @@ import scala.language.reflectiveCalls
   */
 class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   private def fixture = {
-    val fs = new InMemoryFS("root")
+    val fs = InMemoryFS("root").right.get
 
     implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
 

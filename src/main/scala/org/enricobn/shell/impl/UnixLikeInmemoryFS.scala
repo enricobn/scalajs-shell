@@ -6,9 +6,8 @@ import org.enricobn.vfs.inmemory.InMemoryFS
 object UnixLikeInMemoryFS {
 
   def apply(rootPassword: String) = {
-    val fs = new InMemoryFS(rootPassword)
-
     for {
+      fs <- InMemoryFS(rootPassword).right
       authentication <- fs.vum.logUser(VirtualUsersManager.ROOT, rootPassword).right
       bin <- mkdir(fs.root, "bin")(authentication).right
       usr <- mkdir(fs.root, "usr")(authentication).right
