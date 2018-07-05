@@ -384,7 +384,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       run(words.head, words.tail.toArray: _*) match {
         case Left(error) =>
           terminal.add(error.message + CRLF)
-          terminal.flush()
+          prompt()
         case Right(_) =>
       }
     } else {
