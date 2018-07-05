@@ -22,14 +22,11 @@ trait VirtualShell {
 
   def homeFolder: Either[IOError, VirtualFolder] = currentFolder.resolveFolderOrError(s"/home/${authentication.user}")(authentication)
 
-  def run(command: String, args: String*) : Either[IOError, Boolean]
+  def run(command: String, args: String*) : Either[IOError, Unit]
 
-  /**
-    *
-    * @param whenDone will be called when interactive commands have been stopped. Return true if you like to
-    *                 show the prompt.
-    */
-  def stopInteractiveCommands(whenDone: () => Boolean): Unit
+  def runInBackground(command: String, args: String*) : Either[IOError, Unit]
+
+  def killAll(authentication: Authentication): Either[IOError, Unit]
 
   def currentFolder_=(folder: VirtualFolder)
 
@@ -41,9 +38,7 @@ trait VirtualShell {
 
   def login(user: String, password: String): Either[IOError, Authentication]
 
-  def stop(): Unit = {
-    terminal.removeOnInputs()
-  }
+  def stop(authentication: Authentication): Either[IOError, Unit]
 
   /**
     * @return Right(Some(folder)) if the folder exists, Right(None) if the folder or the path do not exist,

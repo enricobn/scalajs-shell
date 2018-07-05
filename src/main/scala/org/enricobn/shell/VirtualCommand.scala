@@ -36,7 +36,7 @@ trait VirtualCommand {
 
   def name: String
 
-  def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) : Either[IOError, RunContext]
+  def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) : Either[IOError, VirtualProcess]
 
   def completion(line: String, shell: VirtualShell): Seq[String]
 

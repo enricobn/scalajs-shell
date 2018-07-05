@@ -20,7 +20,7 @@ class CdCommand extends VirtualCommandAbstract("cd", CdCommand.FOLDER) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
                         (implicit authentication: Authentication)
-  : Either[IOError, RunContext] = {
+  : Either[IOError, VirtualProcess] = {
 
     val errorOrFolder = args match {
       case Seq(folder: VirtualFolder) => Right(folder)
@@ -32,7 +32,7 @@ class CdCommand extends VirtualCommandAbstract("cd", CdCommand.FOLDER) {
       case Left(error) => error.message.ioErrorE
       case Right(folder) =>
           shell.currentFolder = folder
-          Right(new RunContext())
+          Right(new VirtualProcess())
       }
 
   }

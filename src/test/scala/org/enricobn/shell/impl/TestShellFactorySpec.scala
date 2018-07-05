@@ -39,6 +39,8 @@ class TestShellFactorySpec extends FlatSpec with MockFactory with Matchers {
 
     (terminal.onInput _).expects(*).anyNumberOfTimes()
 
+    TestUtils.expectPrompt(terminal)
+
     assert(shell.run("ls").isRight)
 
   }

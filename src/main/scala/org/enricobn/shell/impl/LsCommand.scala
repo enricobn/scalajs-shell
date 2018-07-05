@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{RunContext, ShellInput, ShellOutput}
+import org.enricobn.shell.{ShellInput, ShellOutput, VirtualProcess}
 import org.enricobn.terminal.Terminal._
 import org.enricobn.terminal.TerminalColors
 import org.enricobn.vfs.IOError._
@@ -32,7 +32,7 @@ class LsCommand extends VirtualCommandAbstract("ls", FOLDER) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
                         (implicit authentication: Authentication)
-  : Either[IOError, RunContext] = {
+  : Either[IOError, VirtualProcess] = {
 
     val errorOrFolder = args match {
       case Seq(folder: VirtualFolder) => Right(folder)
@@ -45,7 +45,7 @@ class LsCommand extends VirtualCommandAbstract("ls", FOLDER) {
       case Right(folder) =>
         folder.folders.right.get.foreach(f => print(shellOutput, f))
         folder.files.right.get.foreach(file => print(shellOutput, file))
-        Right(new RunContext())
+        Right(new VirtualProcess())
     }
 
   }

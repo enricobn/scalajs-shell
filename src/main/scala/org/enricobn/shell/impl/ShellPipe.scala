@@ -1,5 +1,6 @@
 package org.enricobn.shell.impl
 
+import org.enricobn.shell.ShellInput.ShellInputDescriptor
 import org.enricobn.shell.{ShellInput, ShellOutput}
 
 import scala.collection.mutable
@@ -21,12 +22,13 @@ class ShellPipe extends ShellInput with ShellOutput {
   import ShellPipe._
   val stringPublisher = new StringPublisher
 
-  def subscribe(fun: Function[String,Unit]) {
+  def subscribe(fun: Function[String,Unit]) : ShellInputDescriptor = {
     stringPublisher.subscribe(new StringPublisher#Sub {
       override def notify(pub: mutable.Publisher[String], event: String) {
         fun(event)
       }
     })
+    ShellInput.newShellInputDescriptor()
   }
 
   def write(s: String) {
@@ -36,4 +38,10 @@ class ShellPipe extends ShellInput with ShellOutput {
   override def flush() {
 
   }
+
+  // TODO
+  override def close(descriptor: ShellInputDescriptor): Unit = {}
+
+  // TODO
+  override def closeAll(): Unit = {}
 }
