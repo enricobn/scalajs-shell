@@ -238,8 +238,13 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
           if (!areInteractiveCommandsRunning && !status.interactive) {
             prompt()
           }
+          val areInteractiveCommandsRunningBefore = areInteractiveCommandsRunning
 
           areInteractiveCommandsRunning = areInteractiveCommandsRunning || status.interactive
+
+          if (!areInteractiveCommandsRunningBefore && areInteractiveCommandsRunning && inputHandler != null) {
+            terminal.removeOnInput(inputHandler)
+          }
 
           runningCommands.synchronized {
             runningCommands.append(status)
@@ -263,6 +268,11 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
 
       if (areInteractiveCommandsRunning && !runningCommands.exists(_.interactive)) {
         areInteractiveCommandsRunning = false
+
+        if (inputHandler != null) {
+          terminal.onInput(inputHandler)
+        }
+
         prompt()
       }
     }

@@ -55,6 +55,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     _ = (terminal.flush _).expects().anyNumberOfTimes()
     _ = (terminal.onInput _).expects(*).anyNumberOfTimes()
     _ = (terminal.removeOnInputs _).expects().anyNumberOfTimes()
+    _ = (terminal.removeOnInput _).expects(*).anyNumberOfTimes()
 
     _ = virtualShell.start()
   } yield {
