@@ -26,8 +26,7 @@ lazy val root = (project in file("."))
       libraryDependencies += "org.enricobn" %%% "scalajs-vfs" % "1.0.0-SNAPSHOT" changing(),
       libraryDependencies += "org.enricobn" %%% "scalajs-terminal" % "1.0.0" changing(),
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.3.0" % "test",
-      libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
+      libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.3.0" % "test"
     )
     .enablePlugins(ScalaJSPlugin)
     
