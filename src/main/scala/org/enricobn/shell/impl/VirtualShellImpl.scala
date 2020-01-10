@@ -100,7 +100,6 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   private var xPrompt = 0
   private var inputHandler: InputHandler = _
   private val completions = new ShellCompletions(context)
-  //private var whenDone: () => Boolean = _
   private val runningCommands = new ListBuffer[RunStatus]()
   private var stopped = true
   private implicit var _authentication: Authentication = initialAuthentication
@@ -118,17 +117,15 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     run(true, command, args: _*)
 
   def killAll(authentication: Authentication): Either[IOError, Unit] = {
-    // TODO must I send some notification to commands?
-
-    runningCommands.synchronized {
-      runningCommands.clear()
-    }
-
     vum.getUser(authentication) match {
       case Some(user) => if (user == VirtualUsersManager.ROOT) {
         if (areInteractiveCommandsRunning) {
           prompt()
           areInteractiveCommandsRunning = false
+        }
+        runningCommands.synchronized {
+          runningCommands.foreach(_.process.kill())
+          runningCommands.clear()
         }
         Right(())
       } else {
@@ -148,9 +145,9 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     startInternal()
   }
 
-  def startWithCommand(command: String, args: String*): Unit = {
+  def startWithCommand(background: Boolean, command: String, args: String*): Unit = {
     startInternal()
-    run(command, args: _*) match {
+    run(background, command, args: _*) match {
       case Left(error) =>
         terminal.add(s"Error starting with command $command ${args.mkString(",")}: ${error.message}\n")
         terminal.flush()
@@ -192,16 +189,14 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
 
   def stop(authentication: Authentication): Either[IOError, Unit] = {
-      if (inputHandler != null) {
-        terminal.removeOnInput(inputHandler)
-      }
-      stopped = true
-      killAll(authentication)
+    stopped = true
+    terminal.removeOnInputs()
+    killAll(authentication)
   }
 
   override def toString: ShellInputDescriptor = name + " (" + super.toString + ")"
 
-  private def run(background: Boolean, command: String, args: String*) : Either[IOError, Unit] = {
+  private def run(background: Boolean, command: String, args: String*) = {
     findCommand(command, currentFolder) match {
       case Right(Some(f)) => runFile(background, f, args: _*)
       case Right(None) => s"$command: No such file".ioErrorE
@@ -272,7 +267,6 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         if (inputHandler != null) {
           terminal.onInput(inputHandler)
         }
-
         prompt()
       }
     }
@@ -391,7 +385,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       history.add(line).left.foreach(showError)
 
       val words = line.split(" ")
-      run(words.head, words.tail.toArray: _*) match {
+      run(false, words.head, words.tail.toArray: _*) match {
         case Left(error) =>
           terminal.add(error.message + CRLF)
           prompt()

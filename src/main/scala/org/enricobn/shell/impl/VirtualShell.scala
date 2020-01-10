@@ -32,7 +32,7 @@ trait VirtualShell {
 
   def start()
 
-  def startWithCommand(command: String, args: String*): Unit
+  def startWithCommand(background: Boolean, command: String, args: String*): Unit
 
   def readLine(onEnter: String => Unit) : Unit
 

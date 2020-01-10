@@ -5,6 +5,8 @@ package org.enricobn.shell
   */
 class VirtualProcess {
 
+  def kill(): Unit = {}
+
   def update(): Unit = {}
 
   def running = false

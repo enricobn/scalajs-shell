@@ -3,6 +3,12 @@ DOING
 
 NEXT
 -----
+- should Ctrl-C be handled automatically by the shell?
+- I don't like the use of shell.findFolder / findFile or virtualFolder.resolveFolder / resolveFile since
+  the path must be built according to the file system path separator, parentFragment and separator
+- add ps command to show running processes
+- add kill command to kill a command (by root or owner)
+- add killall (by root) command to kill all processes
 - I don't like that completions (from Completions), for files and folders, lists all path and not only names.
   For example given the files:
   /usr/bin/one.txt
@@ -27,10 +33,9 @@ NEXT
   warehouse1
   warehouse2
 
-  and I digit "cat ware" then tab, the command line must be "cd warehouse".
+  and I digit "cat ware" then tab, the command line must be "cat warehouse".
 - use shapeless to make a type safe parser for command's arguments (look at TestingShapeless)
-  there's a problem I think with Intellij, look at TODO
-- ls accept a folder || file pattern
+- ls accepts a folder || file pattern
 
 DONE
 -----
