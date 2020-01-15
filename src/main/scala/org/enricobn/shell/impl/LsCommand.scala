@@ -11,24 +11,9 @@ import scala.scalajs.js.annotation.JSExport
 /**
   * Created by enrico on 12/4/16.
   */
-object LsCommand {
-  // TODO filter?
-  private val FOLDER = FolderArgument("folder", false)
-
-  private def toString(permissions: VirtualPermissions): String = {
-    toString(permissions.owner) + " " + toString(permissions.group) + " " + toString(permissions.others)
-  }
-
-  private def toString(permission: VirtualPermission): String =
-    (if (permission.read) "r" else "-") +
-    (if (permission.write) "w" else "-") +
-    (if (permission.execute) "x" else "-")
-}
-
-import org.enricobn.shell.impl.LsCommand._
 
 @JSExport(name = "LsCommand")
-class LsCommand extends VirtualCommandAbstract("ls", FOLDER) {
+object LsCommand extends VirtualCommandAbstract("ls", FolderArgument("folder", required = false)) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
                         (implicit authentication: Authentication)
@@ -67,5 +52,14 @@ class LsCommand extends VirtualCommandAbstract("ls", FOLDER) {
     out.write(s + CRLF)
     out.flush()
   }
+
+  private def toString(permissions: VirtualPermissions): String = {
+    toString(permissions.owner) + " " + toString(permissions.group) + " " + toString(permissions.others)
+  }
+
+  private def toString(permission: VirtualPermission): String =
+    (if (permission.read) "r" else "-") +
+      (if (permission.write) "w" else "-") +
+      (if (permission.execute) "x" else "-")
 
 }

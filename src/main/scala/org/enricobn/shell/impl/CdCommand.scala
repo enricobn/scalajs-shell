@@ -6,9 +6,9 @@ import org.enricobn.vfs.{Authentication, IOError, VirtualFolder}
 
 import scala.scalajs.js.annotation.JSExport
 
-object CdCommand {
+private object CdCommandArguments {
 
-  val FOLDER = FolderArgument("folder", false, (folder, shell) => folder.getCurrentUserPermission(shell.authentication).right.get.execute)
+  val FOLDER = FolderArgument("folder", required = false, (folder, shell) => folder.getCurrentUserPermission(shell.authentication).right.get.execute)
 
 }
 
@@ -16,7 +16,7 @@ object CdCommand {
   * Created by enrico on 12/5/16.
   */
 @JSExport(name = "CdCommand")
-class CdCommand extends VirtualCommandAbstract("cd", CdCommand.FOLDER) {
+object CdCommand extends VirtualCommandAbstract("cd", CdCommandArguments.FOLDER) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
                         (implicit authentication: Authentication)

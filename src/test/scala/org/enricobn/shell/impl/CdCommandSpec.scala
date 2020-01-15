@@ -1,5 +1,6 @@
 package org.enricobn.shell.impl
 
+import org.enricobn.shell.VirtualCommand
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.Authentication
 import org.enricobn.vfs.inmemory.{InMemoryFS, InMemoryFolder}
@@ -23,7 +24,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     val guest = home.mkdir("guest").right.get
 
     new {
-      val command = new CdCommand
+      val command: VirtualCommand = CdCommand
       val currentFolder: InMemoryFolder = guest
       val shell = new VirtualShellImpl(fs, stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), currentFolder,
         authentication)

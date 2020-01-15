@@ -3,6 +3,7 @@ DOING
 
 NEXT
 -----
+- sbt publishLocal does not run tests
 - should Ctrl-C be handled automatically by the shell?
 - I don't like the use of shell.findFolder / findFile or virtualFolder.resolveFolder / resolveFile since
   the path must be built according to the file system path separator, parentFragment and separator
@@ -34,7 +35,7 @@ NEXT
   warehouse2
 
   and I digit "cat ware" then tab, the command line must be "cat warehouse".
-- use shapeless to make a type safe parser for command's arguments (look at TestingShapeless)
+- use shapeless to make a type safe parser for command's arguments (look at project development/scala/shapeless)
 - ls accepts a folder || file pattern
 
 DONE

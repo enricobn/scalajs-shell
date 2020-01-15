@@ -7,17 +7,11 @@ import org.enricobn.vfs.{Authentication, IOError, VirtualFile}
 
 import scala.scalajs.js.annotation.JSExport
 
-object CatCommand {
-
-  val FILE = FileArgument("file", true)
-
-}
-
 /**
   * Created by enrico on 12/5/16.
   */
 @JSExport(name = "CatCommand")
-class CatCommand extends VirtualCommandAbstract("cat", CatCommand.FILE) {
+object CatCommand extends VirtualCommandAbstract("cat", FileArgument("file", required = true)) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
                         (implicit authentication: Authentication)

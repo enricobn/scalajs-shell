@@ -49,7 +49,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     virtualShell = UnixLikeVirtualShell(fs, terminal, guestHome, _authentication, scheduler)
 
-    _ <- VirtualCommandOperations.createCommandFiles(fs.bin, new LsCommand(), new CatCommand(), new CdCommand())
+    _ <- VirtualCommandOperations.createCommandFiles(fs.bin, LsCommand, CatCommand, CdCommand)
 
     _ = (terminal.add _).expects(where { message: String => message.contains("/home/guest") })
     _ = (terminal.flush _).expects().anyNumberOfTimes()
