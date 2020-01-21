@@ -2,6 +2,8 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell._
 import org.enricobn.vfs._
+import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
+import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.matchers.ArgThat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
@@ -13,7 +15,10 @@ import scala.language.reflectiveCalls
   * Created by enrico on 12/15/16.
   */
 class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
-  private val fs = UnixLikeInMemoryFS("root").right.get
+  private val _fs = InMemoryFS(
+    {VirtualUsersManagerFileImpl(_, "root").right.get},
+    {(_, vum) => new VirtualSecurityManagerImpl(vum)})
+  private val fs = UnixLikeInMemoryFS(_fs, "root").right.get
 
   private implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
 

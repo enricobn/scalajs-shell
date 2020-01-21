@@ -3,6 +3,8 @@ package org.enricobn.shell.impl
 import org.enricobn.shell.VirtualCommandOperations
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.Authentication
+import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
+import org.enricobn.vfs.inmemory.InMemoryFS
 import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
 import scala.scalajs.js.annotation.JSExport
@@ -20,7 +22,10 @@ object TestShellFactory {
 
   @JSExport
   def create(terminal: Terminal) : VirtualShell = {
-    val fs = UnixLikeInMemoryFS("root").right.get
+    val _fs = InMemoryFS(
+      {VirtualUsersManagerFileImpl(_, "root").right.get},
+      {(_, vum) => new VirtualSecurityManagerImpl(vum)})
+    val fs = UnixLikeInMemoryFS(_fs, "root").right.get
     implicit val rootAuthentication: Authentication = fs.vum.logRoot("root").right.get
     val rootFolder = fs.root
 

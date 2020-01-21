@@ -2,8 +2,9 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualCommand
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.Authentication
-import org.enricobn.vfs.inmemory.{InMemoryFS, InMemoryFolder}
+import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
+import org.enricobn.vfs.inmemory.InMemoryFS
+import org.enricobn.vfs.{Authentication, VirtualFolder}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -15,17 +16,19 @@ import scala.language.reflectiveCalls
   */
 class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   private def fixture = {
-    val fs = InMemoryFS("root").right.get
+    val fs = InMemoryFS(
+      {VirtualUsersManagerFileImpl(_, "root").right.get},
+      {(_, vum) => new VirtualSecurityManagerImpl(vum)})
 
     implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
 
     val bin = fs.root.mkdir("bin").right.get
-    val home = fs.root.mkdir("home").right.get
+    val home = fs.root.findFolder("home").right.get.get
     val guest = home.mkdir("guest").right.get
 
     new {
       val command: VirtualCommand = CdCommand
-      val currentFolder: InMemoryFolder = guest
+      val currentFolder: VirtualFolder = guest
       val shell = new VirtualShellImpl(fs, stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), currentFolder,
         authentication)
     }
@@ -43,10 +46,10 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     assert(result == Seq("/bin/", "/etc/", "/home/"), result)
   }
 
-  "completion of 'cd /home/'" should "return /home/guest/" in {
+  "completion of 'cd /home/'" should "return /home/guest/ and /home/root" in {
     val f = fixture
     val result = f.command.completion("cd /home/", f.shell)
-    assert(result == Seq("/home/guest/"), result)
+    assert(result == Seq("/home/guest/", "/home/root/"), result)
   }
 
   "completion of 'cd /h'" should "return /home/" in {
@@ -55,17 +58,17 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     assert(result == Seq("/home/"), result)
   }
 
-  "completion of 'cd ../'" should "return ../guest/" in {
+  "completion of 'cd ../'" should "return ../guest/ and ../root" in {
     val f = fixture
     val result = f.command.completion("cd ../", f.shell)
-    assert(result == Seq("../guest/"), result)
+    assert(result == Seq("../guest/", "../root/"), result)
   }
 
-  "completion of 'cd ' in /home" should "return guest/" in {
+  "completion of 'cd ' in /home" should "return guest/ and root/" in {
     val f = fixture
     f.shell.currentFolder = f.shell.currentFolder.parent.get
     val result = f.command.completion("cd ", f.shell)
-    assert(result == Seq("guest/"), result)
+    assert(result == Seq("guest/", "root/"), result)
   }
 
   "completion of 'cd nonexistentpath'" should "return no completions" in {

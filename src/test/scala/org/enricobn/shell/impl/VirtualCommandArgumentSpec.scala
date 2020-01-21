@@ -2,6 +2,7 @@ package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
+import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
@@ -12,7 +13,9 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
 
   private def fixture = {
     val rootPassword = "rootPassword"
-    val _fs = InMemoryFS(rootPassword).right.get
+    val _fs = InMemoryFS(
+      {VirtualUsersManagerFileImpl(_, rootPassword).right.get},
+      {(_, vum) => new VirtualSecurityManagerImpl(vum)})
     implicit val authentication: Authentication = _fs.vum.logRoot(rootPassword).right.get
 
     new {
@@ -33,7 +36,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     val sut = FileArgument("file", true)
     val completions = sut.complete(f.shell, "/", Seq.empty)
 
-    assert(completions == List("/rootFile", "/etc/", "/usr/"))
+    assert(completions == List("/rootFile", "/etc/", "/home/", "/usr/"))
   }
 
   "parse of FileArgument" should "be fine" in {

@@ -3,6 +3,8 @@ package org.enricobn.shell.impl
 import org.enricobn.shell._
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
+import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
+import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 
@@ -31,7 +33,11 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   terminal = mock[Terminal]
   scheduler = new FakeScheduler()
 
-  fs = UnixLikeInMemoryFS(rootPassword).right.get
+  val _fs = InMemoryFS(
+    {VirtualUsersManagerFileImpl(_, rootPassword).right.get},
+    {(_, vum) => new VirtualSecurityManagerImpl(vum)})
+
+  fs = UnixLikeInMemoryFS(_fs, rootPassword).right.get
 
   implicit val _rootAuthentication: Authentication = fs.vum.logRoot(rootPassword).right.get
 

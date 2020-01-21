@@ -1,5 +1,6 @@
 DOING
 ------
+- run tests with sbt (js)?
 
 NEXT
 -----
