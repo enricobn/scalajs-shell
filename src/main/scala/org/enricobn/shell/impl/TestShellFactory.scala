@@ -29,7 +29,7 @@ object TestShellFactory {
     implicit val rootAuthentication: Authentication = fs.vum.logRoot("root").right.get
     val rootFolder = fs.root
 
-    fs.vum.addUser("guest", "guest")
+    fs.vum.addUser("guest", "guest", "guest")
 
     val shellE = for {
       homeGuest <- rootFolder.resolveFolderOrError("/home/guest")

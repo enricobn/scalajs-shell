@@ -40,7 +40,7 @@ object LsCommand extends VirtualCommandAbstract("ls", FolderArgument("folder", r
   }
 
   private def print(out: ShellOutput, node: VirtualNode) {
-    var s = getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  "
+    var s = getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  " + "%1$-10s".format(node.group) + "  "
 
     if (node.isInstanceOf[VirtualFolder]) {
       val colored = new TerminalColors()

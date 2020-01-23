@@ -42,7 +42,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   implicit val _rootAuthentication: Authentication = fs.vum.logRoot(rootPassword).right.get
 
   private val init = for {
-    _ <- fs.vum.addUser("guest", "guest").toLeft(())
+    _ <- fs.vum.addUser("guest", "guest", "guest").toLeft(())
     _authentication <- fs.vum.logUser("guest", "guest")
     _rootFile <- fs.root.touch("rootFile")
     _usrFile <- fs.usr.touch("usrFile")
