@@ -3,15 +3,16 @@ package org.enricobn.shell
 import org.enricobn.shell.impl.VirtualShell
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs.utils.Utils
+import org.enricobn.vfs.utils.Utils.RightBiasedEither
 import org.enricobn.vfs.{Authentication, IOError, VirtualFile, VirtualFolder}
 
 object VirtualCommandOperations {
 
   def createCommandFile(folder: VirtualFolder, command: VirtualCommand)(implicit authentication: Authentication): Either[IOError, VirtualFile] = {
     for {
-      file <- folder.touch(command.name).right
-      _ <- file.setExecutable.toLeft(None).right
-      _ <- file.setContent(command).toLeft(None).right
+      file <- folder.touch(command.name)
+      _ <- file.setExecutable
+      _ <- file.setContent(command)
     } yield {
       file
     }

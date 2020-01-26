@@ -57,7 +57,7 @@ abstract class VirtualShellFileProfile(authentication: () => Authentication) ext
     for {
       c <- content.right
       f <- file.right
-      result <- f.setContent(c(_ + (key -> value)))(authentication()).toLeft(()).right
+      result <- f.setContent(c(_ + (key -> value)))(authentication()).right
     } yield result
 
   def apply(key: String): Either[IOError, Option[String]] =

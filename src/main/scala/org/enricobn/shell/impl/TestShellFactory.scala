@@ -34,8 +34,8 @@ object TestShellFactory {
     val shellE = for {
       homeGuest <- rootFolder.resolveFolderOrError("/home/guest")
       text <- homeGuest.touch("text.txt")
-      _ <- text.setContent("Hello\nWorld").toLeft(None)
-      _ <- text.chmod(666).toLeft(None).right
+      _ <- text.setContent("Hello\nWorld")
+      _ <- text.chmod(666)
       authentication <- fs.vum.logUser("guest", "guest")
 
       shell = UnixLikeVirtualShell(fs, terminal, homeGuest, authentication)
