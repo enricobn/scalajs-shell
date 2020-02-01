@@ -28,16 +28,13 @@ case class FolderArgument(override val name: String, override val required: Bool
   extends VirtualCommandArgument[VirtualFolder] {
 
   override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, VirtualFolder] = {
-    shell.findFolder(value) match {
-      case Left(error) => Left(error.message)
-      case Right(folder) => folder match {
-        case Some(f) =>
-          if (filter.apply(f, shell))
-            Right(f)
+    shell.toFolder(value) match {
+      case Left(_) => Left(s"$name: $value: no such directory")
+      case Right(folder) =>
+          if (filter.apply(folder, shell))
+            Right(folder)
           else
             Left(s"$name: $value: no such directory")
-        case _ => Left(s"$name: $value: no such directory")
-      }
     }
   }
 
@@ -67,19 +64,80 @@ case class FolderArgument(override val name: String, override val required: Bool
   }
 }
 
+/*
+case class NewFolderArgument(override val name: String, override val required: Boolean,
+                             filter: (VirtualFolder, VirtualShell) => Boolean = (_, _) => true)
+  extends VirtualCommandArgument[(VirtualFolder, String)] {
+
+  override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, (VirtualFolder, String)] = {
+    val path: VirtualPath = VirtualPath(value)
+
+    val parent = path.parentFragments
+
+    val parentFolder = if (parent.isEmpty) {
+      shell.currentFolder
+    } else {
+      val parentFolderE = shell.currentFolder.resolveFolderOrError(parent.get.path)(shell.authentication)
+      if (parentFolderE.isLeft) {
+        return Left(parentFolderE.left.get.message)
+      } else {
+        parentFolderE.right.get
+    }
+
+    shell.findFolder(value) match {
+      case Left(error) => Left(error.message)
+      case Right(folder) => folder match {
+        case Some(f) =>
+          if (filter.apply(f, shell))
+            Right(f)
+          else
+            Left(s"$name: $value: no such directory")
+        case _ => Left(s"$name: $value: no such directory")
+      }
+    }
+    }
+  }
+
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
+    implicit val authentication: Authentication = shell.authentication
+
+    CompletionPath(shell, value) match {
+      case UnknownPath() => Seq.empty
+      case partialPath: PartialPath =>
+
+        if (!filter.apply(partialPath.folder, shell)) {
+          return Seq.empty
+        }
+
+        partialPath.folder.folders match {
+          case Left(_) => Seq.empty
+          case Right(allFolders) =>
+            var folders = allFolders.filter(filter(_, shell))
+            if (partialPath.remaining.isDefined) {
+              folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
+            }
+            folders
+              .map(partialPath.relativePath + _.name + "/")
+              .toSeq
+        }
+    }
+  }
+}
+
+ */
+
 case class FileArgument(override val name: String, override val required: Boolean,
                         filter: (VirtualFile, VirtualShell) => Boolean = (_, _) => true)
   extends VirtualCommandArgument[VirtualFile] {
 
   override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, VirtualFile] = {
-    shell.findFile(value) match {
+    shell.toFile(value) match {
       case Left(error) => Left(error.message)
-      case Right(Some(file)) =>
+      case Right(file) =>
         if (filter.apply(file, shell))
           Right(file)
         else
           Left(s"$name: $value: no such file")
-      case _ => Left(s"$name: $value: no such file")
     }
   }
 

@@ -1,7 +1,8 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualShellProfile
-import org.enricobn.vfs.{Authentication, IOError, VirtualFS, VirtualFile}
+import org.enricobn.vfs.utils.Utils.RightBiasedEither
+import org.enricobn.vfs._
 
 class VirtualShellUserProfile(private val shell: VirtualShell) extends VirtualShellFileProfile(() => shell.authentication) {
 
@@ -25,7 +26,8 @@ class VirtualShellGlobalProfile(private val fs: VirtualFS, private val authentic
 
   def file: Either[IOError, VirtualFile] = {
     for {
-      etcFolder <- fs.root.resolveFolderOrError("etc")(authentication()).right
+      etcPath <- VirtualPath.of("etc")
+      etcFolder <- etcPath.toFolder(fs.root)(authentication()).right
       alreadyPresent <- etcFolder.findFile("profile")(authentication()).right
       file <- if (alreadyPresent.isDefined) {
         Right(alreadyPresent.get).right

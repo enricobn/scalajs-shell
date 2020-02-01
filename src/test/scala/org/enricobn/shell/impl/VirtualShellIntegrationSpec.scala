@@ -46,7 +46,8 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     _authentication <- fs.vum.logUser("guest", "guest")
     _rootFile <- fs.root.touch("rootFile")
     _usrFile <- fs.usr.touch("usrFile")
-    guestHome <- fs.home.resolveFolderOrError("guest")
+    guestPath <- VirtualPath.absolute("home", "guest")
+    guestHome <- guestPath.toFolder(fs)
     text <- guestHome.touch("text.txt")
     _ <- text.chmod(666)
     _ <- text.setContent("Hello\nWorld")
@@ -191,10 +192,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     assert(folder.right.get == fs.usrBin)
   }
 
-  "findFolder of not existent folder" should "return Right(None)" in {
-    val folder = shell.findFolder("home/enrico")
+  "toFolder of not existent folder" should "return IOError" in {
+    val folder = shell.toFolder("home/enrico")
 
-    assert(folder.right.get.isEmpty)
+    assert(folder.isLeft)
   }
 
   "toFile of absolute path" should "work" in {
@@ -217,58 +218,58 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     assert(usrFile == file.right.get)
   }
 
-  "findFile of parent of root" should "return Right(None)" in {
+  "findFile of parent of root" should "return IOError" in {
     shell.currentFolder = fs.root
 
-    val file = shell.findFile("..")
+    val file = shell.toFile("..")
 
-    assert(Right(None) == file)
+    assert(file.isLeft)
   }
 
-  "findFile of parent of parent of root" should "return Right(None)" in {
+  "findFile of parent of parent of root" should "return IOError" in {
     shell.currentFolder = fs.root
 
-    val file = shell.findFile("../..")
+    val file = shell.toFile("../..")
 
-    assert(Right(None) == file)
+    assert(file.isLeft)
   }
 
-  "findFolder of ../.. of usr" should "return Right(None)" in {
+  "findFolder of ../.. of usr" should "return IOError" in {
     shell.currentFolder = fs.usr
 
-    val file = shell.findFolder("../..")
+    val file = shell.toFolder("../..")
 
-    assert(Right(None) == file)
+    assert(file.isLeft)
   }
 
   "findFolder of ../.. of bin" should "return root" in {
     shell.currentFolder = fs.usrBin
 
-    val folder = shell.findFolder("../..")
+    val folder = shell.toFolder("../..")
 
-    assert(Right(Some(fs.root)) == folder)
+    assert(Right(fs.root) == folder)
   }
 
   "findFile of ../../usr/bin/binFile from bin" should "return binFile" in {
     shell.currentFolder = fs.usrBin
 
-    val file = shell.findFile("../../usr/bin/binFile")
+    val file = shell.toFile("../../usr/bin/binFile")
 
-    assert(Right(Some(binFile)) == file)
+    assert(Right(binFile) == file)
   }
 
   "find of ../..." should "not work, but don't throw an Exception" in {
     shell.currentFolder = fs.bin
 
-    val file = shell.findFile("../.../")
+    val file = shell.toFile("../.../")
 
-    assert(Right(None) == file)
+    assert(file.isLeft)
   }
 
   "find of ~/text.txt" should "work" in {
-    val file = shell.findFile("~/text.txt")
+    val file = shell.toFile("~/text.txt")
 
-    assert(Right(Some(textFile)) == file)
+    assert(Right(textFile) == file)
   }
 
   "int" should "show prompt" in {

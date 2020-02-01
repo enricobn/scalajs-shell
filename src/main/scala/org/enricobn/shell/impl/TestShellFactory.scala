@@ -2,10 +2,10 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualCommandOperations
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.Authentication
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.enricobn.vfs.utils.Utils.RightBiasedEither
+import org.enricobn.vfs.{Authentication, VirtualFileWithContent, VirtualPath}
 
 import scala.scalajs.js.annotation.JSExport
 
@@ -27,15 +27,15 @@ object TestShellFactory {
       {(_, vum) => new VirtualSecurityManagerImpl(vum)})
     val fs = UnixLikeInMemoryFS(_fs, "root").right.get
     implicit val rootAuthentication: Authentication = fs.vum.logRoot("root").right.get
-    val rootFolder = fs.root
 
     fs.vum.addUser("guest", "guest", "guest")
 
     val shellE = for {
-      homeGuest <- rootFolder.resolveFolderOrError("/home/guest")
-      text <- homeGuest.touch("text.txt")
-      _ <- text.setContent("Hello\nWorld")
-      _ <- text.chmod(666)
+      homeGuestPath <- VirtualPath.absolute("home", "guest", "text.txt")
+      homeGuestFC = new VirtualFileWithContent(classOf[String], fs, homeGuestPath)
+      homeGuest <- VirtualPath.absolute("home", "guest").flatMap(_.toFolder(fs))
+      _ <- homeGuestFC.setContent("Hello\nWorld")
+      _ <- homeGuestFC.file.flatMap(_.chmod(666))
       authentication <- fs.vum.logUser("guest", "guest")
 
       shell = UnixLikeVirtualShell(fs, terminal, homeGuest, authentication)

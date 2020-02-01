@@ -19,7 +19,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     implicit val authentication: Authentication = _fs.vum.logRoot(rootPassword).right.get
 
     new {
-      val fs = _fs
+      val fs: InMemoryFS = _fs
       val usersManager: VirtualUsersManager = _fs.vum
       val usr : VirtualFolder = _fs.root.mkdir("usr").right.get
       val bin : VirtualFolder = usr.mkdir("bin").right.get
@@ -33,7 +33,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
   "completion of FileArgument" should "be fine" in {
     val f = fixture
 
-    val sut = FileArgument("file", true)
+    val sut = FileArgument("file", required = true)
     val completions = sut.complete(f.shell, "/", Seq.empty)
 
     assert(completions == List("/rootFile", "/etc/", "/home/", "/usr/"))
@@ -42,7 +42,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
   "parse of FileArgument" should "be fine" in {
     val f = fixture
 
-    val sut = FileArgument("file", true)
+    val sut = FileArgument("file", required = true)
     val parsedArguments = sut.parse(f.shell, "/rootFile", Seq.empty)
 
     assert(parsedArguments.right.get == f.rootFile)
@@ -51,7 +51,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
   "parse of FolderArgument" should "be fine" in {
     val f = fixture
 
-    val sut = FolderArgument("folder", true)
+    val sut = FolderArgument("folder", required = true)
     val parsedArguments = sut.parse(f.shell, "/", Seq.empty)
 
     assert(parsedArguments.right.get == f.fs.root)
@@ -60,7 +60,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
   "completion of not existent argument" should "return an empty list" in {
     val f = fixture
 
-    val sut = new VirtualCommandArguments(FileArgument("file", true))
+    val sut = new VirtualCommandArguments(FileArgument("file", required = true))
 
     val completions = sut.complete(f.shell, "command / ")
 
@@ -70,7 +70,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
   "parse without required arguments" should "return an Error with usage" in {
     val f = fixture
 
-    val sut = new VirtualCommandArguments(FileArgument("file", true))
+    val sut = new VirtualCommandArguments(FileArgument("file", required = true))
 
     val parsedArguments = sut.parse(f.shell, "cd")
 
@@ -82,7 +82,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
   "parse without optional arguments" should "be fine" in {
     val f = fixture
 
-    val sut = new VirtualCommandArguments(FileArgument("file", false))
+    val sut = new VirtualCommandArguments(FileArgument("file", required = false))
 
     val parsedArguments = sut.parse(f.shell, "cd")
 
@@ -91,12 +91,12 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
 
   "parse with optional arguments before required" should "throw an exception" in {
     intercept[IllegalArgumentException] {
-      new VirtualCommandArguments(FileArgument("file1", false), FileArgument("file2", true))
+      new VirtualCommandArguments(FileArgument("file1", required = false), FileArgument("file2", required = true))
     }
   }
 
   "parse with required arguments before optional" should "be fine" in {
-    new VirtualCommandArguments(FileArgument("file1", true), FileArgument("file2", false))
+    new VirtualCommandArguments(FileArgument("file1", required = true), FileArgument("file2", required = false))
   }
 
   "complete with no arguments" should "be empty" in {

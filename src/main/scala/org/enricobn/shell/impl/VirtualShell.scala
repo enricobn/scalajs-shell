@@ -2,7 +2,9 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualShellContext
 import org.enricobn.terminal.Terminal
+import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
+import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
 trait VirtualShell {
 
@@ -20,7 +22,8 @@ trait VirtualShell {
 
   def currentFolder: VirtualFolder
 
-  def homeFolder: Either[IOError, VirtualFolder] = currentFolder.resolveFolderOrError(s"/home/${authentication.user}")(authentication)
+  def homeFolder: Either[IOError, VirtualFolder] =
+    VirtualPath.absolute("home", authentication.user).right.flatMap(_.toFolder(fs)(authentication))
 
   def run(command: String, args: String*) : Either[IOError, Unit]
 
@@ -40,58 +43,42 @@ trait VirtualShell {
 
   def stop(authentication: Authentication): Either[IOError, Unit]
 
-  /**
-    * @return Right(Some(folder)) if the folder exists, Right(None) if the folder or the path do not exist,
-    *         Left(error) if an error occurred.
-    */
-  def findFolder(path: String): Either[IOError,Option[VirtualFolder]] = {
-    val virtualPath = VirtualPath(path)
+  def toFolder(path: String): Either[IOError,VirtualFolder] = {
+    if (path == "~")
+      return homeFolder
 
-    val resolvedPath = virtualPath.fragments.head match {
-      case SimpleFragment("~") => homeFolder.right.map(_.path).right.get + VirtualFS.pathSeparator +
-        VirtualPath(virtualPath.fragments.tail).path
-      case _ => path
-    }
+    if (path.startsWith("~") && !path.startsWith("~" + VirtualFS.pathSeparator))
+      return s"Invalid path $path".ioErrorE
 
-    currentFolder.resolveFolder(resolvedPath)(authentication)
+    val (fromFolderE, pathToSearch) =
+      if (path.startsWith("~"))
+        (homeFolder, path.substring(2))
+      else
+        (Right(currentFolder), path)
+
+    for {
+      fromFolder <- fromFolderE
+      virtualPath <- VirtualPath.of(pathToSearch)
+      folder <- virtualPath.toFolder(fromFolder)(authentication)
+    } yield folder
+
   }
 
-  /**
-    * @return a Left(error) if the folder or the path does not exist; if you want to check that, use
-    * [[VirtualShell.findFolder]] instead.
-    */
-  def toFolder(path: String): Either[IOError,VirtualFolder] =
-    findFolder(path) match {
-      case Right(Some(folder)) => Right(folder)
-      case Right(None) => Left(IOError(s"Cannot resolve path '$path' from '$currentFolder'."))
-      case Left(error) => Left(error)
-    }
+  def toFile(path: String): Either[IOError,VirtualFile] = {
+    if (path.startsWith("~") && !path.startsWith("~" + VirtualFS.pathSeparator))
+      return s"Invalid path $path".ioErrorE
 
-  /**
-    * @return a Left(error) if the file or the path does not exist; if you want to check that, use
-    * [[VirtualShell.findFile]] instead.
-    */
-  def toFile(path: String): Either[IOError,VirtualFile] =
-    findFile(path) match {
-      case Right(Some(file)) => Right(file)
-      case Right(None) => Left(IOError(s"Cannot resolve file '$path' from '$currentFolder'"))
-      case Left(error) => Left(error)
-    }
+    val (fromFolderE, pathToSearch) =
+      if (path.startsWith("~"))
+        (homeFolder, path.substring(2))
+      else
+        (Right(currentFolder), path)
 
-  /**
-    * @return Right(Some(file)) if the file exists, Right(None) if the file or the path do not exist,
-    *         Left(error) if an error occurred.
-    */
-  def findFile(path: String): Either[IOError,Option[VirtualFile]] = {
-    val virtualPath = VirtualPath(path)
-    if (virtualPath.parentFragments.isEmpty)
-      currentFolder.findFile(virtualPath.name)(authentication)
-    else
-      findFolder(virtualPath.parentFragments.get.path) match {
-        case Right(Some(folder)) => folder.findFile(virtualPath.name)(authentication)
-        case Right(None) => Right(None)
-        case Left(error) => Left(error)
-      }
+    for {
+      fromFolder <- fromFolderE
+      virtualPath <- VirtualPath.of(pathToSearch)
+      folder <- virtualPath.toFile(fromFolder)(authentication)
+    } yield folder
   }
 
   def findCommand(command: String, currentFolder: VirtualFolder)

@@ -27,11 +27,10 @@ object CompletionPath {
           PartialPath(shell.currentFolder.root, "/", remaining)
         } else {
           val parent = prefix.substring(0, lastSlash)
-          shell.findFolder(parent) match {
+          shell.toFolder(parent) match {
             case Left(_) => new UnknownPath
-            case Right(Some(folder)) =>
+            case Right(folder) =>
               PartialPath(folder, prefix.substring(0, lastSlash) + VirtualFS.pathSeparator, remaining)
-            case _ => new UnknownPath
           }
         }
       }
