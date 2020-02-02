@@ -1,8 +1,8 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{CompletionPath, PartialPath, UnknownPath}
-import org.enricobn.vfs.utils.Utils.RightBiasedEither
 import org.enricobn.vfs._
+import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
 import scala.collection.mutable.ListBuffer
 
@@ -107,6 +107,55 @@ case class NewFolderArgument(override val name: String, override val required: B
         }
     }
   }
+
+}
+
+case class NewFileArgument(override val name: String, override val required: Boolean,
+                           filter: (VirtualFile, VirtualShell) => Boolean = (_, _) => true)
+  extends VirtualCommandArgument[(VirtualFolder, String)] {
+
+  override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, (VirtualFolder, String)] = {
+    (for {
+      path <- VirtualPath.of(value)
+      parentPath <- if (path.parentOrError.isLeft)
+        Right(shell.currentFolder)
+      else
+        path.parentOrError
+      parent <- shell.toFolder(parentPath.toString)
+    } yield (parent, path.name)).left.map(_.message)
+  }
+
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
+    implicit val authentication: Authentication = shell.authentication
+
+    CompletionPath(shell, value, forFile = true) match {
+      case UnknownPath() => Seq.empty
+      case PartialPath(folder, relativePath, remaining) =>
+        val files =
+          folder.files match {
+            case Left(_) => Seq.empty
+            case Right(fx) =>
+              fx.filter(filter(_, shell))
+          }
+
+        val folders =
+          folder.folders match {
+            case Left(_) => Seq.empty
+            case Right(f) => f
+          }
+
+        val all = (files.map(_.name) ++ folders.map(_.name + VirtualFS.pathSeparator)).toSeq
+
+        (if (remaining.isDefined)
+          all.filter(_.startsWith(remaining.get))
+        else
+          all
+          ).map(relativePath + _)
+
+      case _ => Seq.empty
+    }
+  }
+
 }
 
 case class FileArgument(override val name: String, override val required: Boolean,
