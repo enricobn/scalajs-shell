@@ -40,7 +40,7 @@ object TestShellFactory {
 
       shell = UnixLikeVirtualShell(fs, terminal, homeGuest, authentication)
 
-      _ <- VirtualCommandOperations.createCommandFiles(fs.bin, LsCommand, CdCommand, CatCommand)
+      _ <- VirtualCommandOperations.createCommandFiles(fs.bin, LsCommand, CdCommand, CatCommand, MkdirCommand)
     } yield shell
 
     shellE match {

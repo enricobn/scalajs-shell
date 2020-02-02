@@ -22,14 +22,14 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
 
-    val bin = fs.root.mkdir("bin").right.get
+    val _ = fs.root.mkdir("bin").right.get
     val home = fs.root.findFolder("home").right.get.get
-    val guest = home.mkdir("guest").right.get
+    val _guest = home.mkdir("guest").right.get
 
     new {
       val command: VirtualCommand = CdCommand
-      val currentFolder: VirtualFolder = guest
-      val shell = new VirtualShellImpl(fs, stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), currentFolder,
+      val guestFolder: VirtualFolder = _guest
+      val shell = new VirtualShellImpl(fs, stub[Terminal], fs.vum, fs.vsm, new VirtualShellContextImpl(), guestFolder,
         authentication)
     }
   }
@@ -106,5 +106,19 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     val f = fixture
     val result = f.command.completion("cd /home/guest/", f.shell)
     assert(result.isEmpty, result)
+  }
+
+  "completion of 'cd /home/guest/pippo'" should "return 2 rows" in {
+    val f = fixture
+
+    implicit val authentication : Authentication = f.shell.authentication
+
+    val dummy = f.guestFolder.mkdir("dummy").right.get
+    dummy.mkdir("indummy").right.get
+    f.guestFolder.mkdir("dummy1").right.get
+
+    val result = f.command.completion("cd /home/guest/dummy", f.shell)
+
+    assert(result.toList == List("/home/guest/dummy/", "/home/guest/dummy1/"))
   }
 }

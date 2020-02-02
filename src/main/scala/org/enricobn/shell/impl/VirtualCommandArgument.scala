@@ -1,7 +1,8 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{CompletionPath, PartialPath, UnknownPath}
-import org.enricobn.vfs.{Authentication, VirtualFS, VirtualFile, VirtualFolder}
+import org.enricobn.vfs.utils.Utils.RightBiasedEither
+import org.enricobn.vfs._
 
 import scala.collection.mutable.ListBuffer
 
@@ -41,7 +42,7 @@ case class FolderArgument(override val name: String, override val required: Bool
   override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
     implicit val authentication: Authentication = shell.authentication
 
-    CompletionPath(shell, value) match {
+    CompletionPath(shell, value, forFile = false) match {
       case UnknownPath() => Seq.empty
       case partialPath: PartialPath =>
 
@@ -64,44 +65,28 @@ case class FolderArgument(override val name: String, override val required: Bool
   }
 }
 
-/*
 case class NewFolderArgument(override val name: String, override val required: Boolean,
                              filter: (VirtualFolder, VirtualShell) => Boolean = (_, _) => true)
   extends VirtualCommandArgument[(VirtualFolder, String)] {
 
   override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, (VirtualFolder, String)] = {
-    val path: VirtualPath = VirtualPath(value)
+    implicit val authentication: Authentication = shell.authentication
 
-    val parent = path.parentFragments
-
-    val parentFolder = if (parent.isEmpty) {
-      shell.currentFolder
-    } else {
-      val parentFolderE = shell.currentFolder.resolveFolderOrError(parent.get.path)(shell.authentication)
-      if (parentFolderE.isLeft) {
-        return Left(parentFolderE.left.get.message)
-      } else {
-        parentFolderE.right.get
-    }
-
-    shell.findFolder(value) match {
-      case Left(error) => Left(error.message)
-      case Right(folder) => folder match {
-        case Some(f) =>
-          if (filter.apply(f, shell))
-            Right(f)
-          else
-            Left(s"$name: $value: no such directory")
-        case _ => Left(s"$name: $value: no such directory")
-      }
-    }
-    }
+    (for {
+      path <- VirtualPath.of(value)
+      parentPath <- if (path.parentOrError.isLeft)
+        Right(shell.currentFolder)
+      else
+        path.parentOrError
+      parent <- shell.toFolder(parentPath.toString)
+    } yield (parent, path.name)).left.map(_.message)
   }
 
+  // TODO the same code of FolderArgument
   override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
     implicit val authentication: Authentication = shell.authentication
 
-    CompletionPath(shell, value) match {
+    CompletionPath(shell, value, forFile = false) match {
       case UnknownPath() => Seq.empty
       case partialPath: PartialPath =>
 
@@ -123,8 +108,6 @@ case class NewFolderArgument(override val name: String, override val required: B
     }
   }
 }
-
- */
 
 case class FileArgument(override val name: String, override val required: Boolean,
                         filter: (VirtualFile, VirtualShell) => Boolean = (_, _) => true)
@@ -144,7 +127,7 @@ case class FileArgument(override val name: String, override val required: Boolea
   override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
     implicit val authentication: Authentication = shell.authentication
 
-    CompletionPath(shell, value) match {
+    CompletionPath(shell, value, forFile = true) match {
       case UnknownPath() => Seq.empty
       case PartialPath(folder, relativePath, remaining) =>
         val files =

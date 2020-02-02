@@ -7,7 +7,7 @@ import org.enricobn.vfs.{Authentication, VirtualFS, VirtualFolder}
   */
 object CompletionPath {
 
-  def apply(shell: VirtualShell, prefix: String): CompletionPath = {
+  def apply(shell: VirtualShell, prefix: String, forFile: Boolean): CompletionPath = {
     implicit val authentication: Authentication = shell.authentication
 
     val lastSlash = prefix.lastIndexOf('/')
@@ -38,11 +38,27 @@ object CompletionPath {
     // I try to resolve the remaining part
     tmpResult match {
       case PartialPath(folder, relativePath, Some(remaining)) =>
-        folder.findFolder(remaining) match {
-          case Left(_) => UnknownPath()
-          case Right(Some(f)) => PartialPath(f, remaining + VirtualFS.pathSeparator, None)
-          case _ => PartialPath(folder, relativePath, Some(remaining))
-        }
+        if (forFile)
+          folder.findFolder(remaining) match {
+            case Left(_) => UnknownPath()
+            case Right(Some(f)) => PartialPath(f, remaining + VirtualFS.pathSeparator, None)
+            case _ => PartialPath(folder, relativePath, Some(remaining))
+          }
+        else
+          folder.folders match {
+            case Left(_) => UnknownPath()
+            case Right(folders) =>
+              val matchingFolders = folders.filter(_.name.startsWith(remaining))
+              if (matchingFolders.nonEmpty)
+                // the folder is only one and matches exactly the name given by the user, so I don't complete nothing
+                // is already right
+                if (matchingFolders.size == 1 && matchingFolders.head.name == remaining)
+                  UnknownPath()
+                else
+                  PartialPath(folder, relativePath, Some(remaining))
+              else
+                UnknownPath()
+          }
       case x => x
     }
   }
