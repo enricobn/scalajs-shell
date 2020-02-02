@@ -16,6 +16,68 @@ trait VirtualCommandArgument[+T] {
   def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String]
 }
 
+private object VirtualArgumentCommon {
+
+  def completeFolder(shell: VirtualShell, value: String, previousArguments: Seq[Any],
+                        filter: (VirtualFolder, VirtualShell) => Boolean): Seq[String] = {
+    implicit val authentication: Authentication = shell.authentication
+
+    CompletionPath(shell, value, forFile = false) match {
+      case UnknownPath() => Seq.empty
+      case partialPath: PartialPath =>
+
+        if (!filter.apply(partialPath.folder, shell)) {
+          return Seq.empty
+        }
+
+        partialPath.folder.folders match {
+          case Left(_) => Seq.empty
+          case Right(allFolders) =>
+            var folders = allFolders.filter(filter(_, shell))
+            if (partialPath.remaining.isDefined) {
+              folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
+            }
+            folders
+              .map(partialPath.relativePath + _.name + "/")
+              .toSeq
+        }
+    }
+  }
+
+  def completeFile(shell: VirtualShell, value: String, previousArguments: Seq[Any],
+                   filter: (VirtualFile, VirtualShell) => Boolean): Seq[String] = {
+    implicit val authentication: Authentication = shell.authentication
+
+    CompletionPath(shell, value, forFile = true) match {
+      case UnknownPath() => Seq.empty
+      case PartialPath(folder, relativePath, remaining) =>
+        val files =
+          folder.files match {
+            case Left(_) => Seq.empty
+            case Right(fx) =>
+              fx.filter(filter(_, shell))
+          }
+
+        val folders =
+          folder.folders match {
+            case Left(_) => Seq.empty
+            case Right(f) => f
+          }
+
+        val all = (files.map(_.name) ++ folders.map(_.name + VirtualFS.pathSeparator)).toSeq
+
+        (if (remaining.isDefined)
+          all.filter(_.startsWith(remaining.get))
+        else
+          all
+          ).map(relativePath + _)
+
+      case _ => Seq.empty
+    }
+  }
+
+}
+
 // TODO the filter is applied only to the parent folder and the result folders.
 // For example fod folders:
 // /usr/bin/dummy
@@ -39,30 +101,9 @@ case class FolderArgument(override val name: String, override val required: Bool
     }
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
-    implicit val authentication: Authentication = shell.authentication
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+    VirtualArgumentCommon.completeFolder(shell, value, previousArguments, filter)
 
-    CompletionPath(shell, value, forFile = false) match {
-      case UnknownPath() => Seq.empty
-      case partialPath: PartialPath =>
-
-        if (!filter.apply(partialPath.folder, shell)) {
-          return Seq.empty
-        }
-
-        partialPath.folder.folders match {
-          case Left(_) => Seq.empty
-          case Right(allFolders) =>
-            var folders = allFolders.filter(filter(_, shell))
-            if (partialPath.remaining.isDefined) {
-              folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
-            }
-            folders
-              .map(partialPath.relativePath + _.name + "/")
-              .toSeq
-        }
-    }
-  }
 }
 
 case class NewFolderArgument(override val name: String, override val required: Boolean,
@@ -82,31 +123,8 @@ case class NewFolderArgument(override val name: String, override val required: B
     } yield (parent, path.name)).left.map(_.message)
   }
 
-  // TODO the same code of FolderArgument
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
-    implicit val authentication: Authentication = shell.authentication
-
-    CompletionPath(shell, value, forFile = false) match {
-      case UnknownPath() => Seq.empty
-      case partialPath: PartialPath =>
-
-        if (!filter.apply(partialPath.folder, shell)) {
-          return Seq.empty
-        }
-
-        partialPath.folder.folders match {
-          case Left(_) => Seq.empty
-          case Right(allFolders) =>
-            var folders = allFolders.filter(filter(_, shell))
-            if (partialPath.remaining.isDefined) {
-              folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
-            }
-            folders
-              .map(partialPath.relativePath + _.name + "/")
-              .toSeq
-        }
-    }
-  }
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+    VirtualArgumentCommon.completeFolder(shell, value, previousArguments, filter)
 
 }
 
@@ -125,36 +143,8 @@ case class NewFileArgument(override val name: String, override val required: Boo
     } yield (parent, path.name)).left.map(_.message)
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
-    implicit val authentication: Authentication = shell.authentication
-
-    CompletionPath(shell, value, forFile = true) match {
-      case UnknownPath() => Seq.empty
-      case PartialPath(folder, relativePath, remaining) =>
-        val files =
-          folder.files match {
-            case Left(_) => Seq.empty
-            case Right(fx) =>
-              fx.filter(filter(_, shell))
-          }
-
-        val folders =
-          folder.folders match {
-            case Left(_) => Seq.empty
-            case Right(f) => f
-          }
-
-        val all = (files.map(_.name) ++ folders.map(_.name + VirtualFS.pathSeparator)).toSeq
-
-        (if (remaining.isDefined)
-          all.filter(_.startsWith(remaining.get))
-        else
-          all
-          ).map(relativePath + _)
-
-      case _ => Seq.empty
-    }
-  }
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+    VirtualArgumentCommon.completeFile(shell, value, previousArguments, filter)
 
 }
 
@@ -173,36 +163,8 @@ case class FileArgument(override val name: String, override val required: Boolea
     }
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = {
-    implicit val authentication: Authentication = shell.authentication
-
-    CompletionPath(shell, value, forFile = true) match {
-      case UnknownPath() => Seq.empty
-      case PartialPath(folder, relativePath, remaining) =>
-        val files =
-          folder.files match {
-            case Left(_) => Seq.empty
-            case Right(fx) =>
-              fx.filter(filter(_, shell))
-          }
-
-        val folders =
-          folder.folders match {
-            case Left(_) => Seq.empty
-            case Right(f) => f
-          }
-
-        val all = (files.map(_.name) ++ folders.map(_.name + VirtualFS.pathSeparator)).toSeq
-
-        (if (remaining.isDefined)
-          all.filter(_.startsWith(remaining.get))
-        else
-          all
-          ).map(relativePath + _)
-
-      case _ => Seq.empty
-    }
-  }
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+    VirtualArgumentCommon.completeFile(shell, value, previousArguments, filter)
 
 }
 
