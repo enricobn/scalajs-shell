@@ -6,7 +6,7 @@ import org.enricobn.shell.ShellInput.ShellInputDescriptor
 import org.enricobn.shell._
 import org.enricobn.shell.impl.RunStatus.Pid
 import org.enricobn.terminal.Terminal._
-import org.enricobn.terminal.{StringPub, Terminal, TerminalOperations}
+import org.enricobn.terminal.{StringPub, Terminal, TerminalColors, TerminalOperations}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
 import org.scalajs.dom
@@ -24,7 +24,7 @@ private object RunStatus {
 
 }
 
-private case class RunStatus(pid: Pid, process: VirtualProcess, shellInput: ShellInput, background : Boolean) {
+private case class RunStatus(pid: Pid, process: VirtualProcess, shellInput: ShellInput, background: Boolean) {
 
   def interactive: Boolean = !background && process.running
 
@@ -32,7 +32,7 @@ private case class RunStatus(pid: Pid, process: VirtualProcess, shellInput: Shel
 
 trait Scheduler {
 
-  def run(callback: Double => Unit) : Unit
+  def run(callback: Double => Unit): Unit
 
 }
 
@@ -45,7 +45,7 @@ class RequestAnimationFrameScheduler extends Scheduler {
 object UnixLikeVirtualShell {
 
   def apply(fs: UnixLikeInMemoryFS, terminal: Terminal, currentFolder: VirtualFolder, initialAuthentication: Authentication,
-            scheduler : Scheduler = new RequestAnimationFrameScheduler()): VirtualShell = {
+            scheduler: Scheduler = new RequestAnimationFrameScheduler()): VirtualShell = {
     val context = new VirtualShellContextImpl()
 
     val shell = new VirtualShellImpl(fs, terminal, fs.vum, fs.vsm, context, currentFolder, initialAuthentication, scheduler)
@@ -88,11 +88,11 @@ object VirtualShellImpl {
 
 }
 
-@JSExport(name="VirtualShell")
+@JSExport(name = "VirtualShell")
 @JSExportAll
 class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager, val context: VirtualShellContext,
                        private var _currentFolder: VirtualFolder, private val initialAuthentication: Authentication,
-                       private val scheduler : Scheduler = new RequestAnimationFrameScheduler) extends VirtualShell {
+                       private val scheduler: Scheduler = new RequestAnimationFrameScheduler) extends VirtualShell {
   private val name = "Shell " + VirtualShellImpl.shellCount
   private var line = ""
   private val history = new CommandHistory(new CommandHistoryFileStore(this))
@@ -110,7 +110,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
 
   def currentFolder: VirtualFolder = _currentFolder
 
-  def run(command: String, args: String*) : Either[IOError, Unit] =
+  def run(command: String, args: String*): Either[IOError, Unit] =
     run(false, command, args: _*)
 
   override def runInBackground(command: String, args: String*): Either[IOError, Unit] =
@@ -168,7 +168,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       terminal.removeOnInput(inputHandler)
     }
 
-    val subscriber : GetStringInputHandler = new GetStringInputHandler({ s =>
+    val subscriber: GetStringInputHandler = new GetStringInputHandler({ s =>
       // Don't move it after onEnter: if the onEnter stops the shell, a useless handler is added.
       if (inputHandler != null) {
         terminal.onInput(inputHandler)
@@ -277,16 +277,16 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   }
 
   private def prompt() {
-//    val prompt = new ShellColors()
-//        .yellow(vum.currentUser + ":")
-//        .add(" ")
-//        .bold.blue
-//          .add(currentFolder.path)
-//        .endAll
-//        .add("$ ")
-    val prompt = authentication.user + ":" + currentFolder.path + "$ "
+    //    val prompt = new ShellColors()
+    //        .yellow(vum.currentUser + ":")
+    //        .add(" ")
+    //        .bold.blue
+    //          .add(currentFolder.path)
+    //        .endAll
+    //        .add("$ ")
+    val prompt = new TerminalColors().bold().green(authentication.user) + ":" +
+      new TerminalColors().bold().blue(currentFolder.path) + "$ "
 
-//    val text: String = ESC + "[32m" + vum.currentUser + ESC + "[0m" + ":" + currentFolder.path + "$ "
     terminal.add(prompt.toString)
     terminal.flush()
     x = prompt.length
@@ -309,7 +309,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
           TerminalOperations.moveLeft(terminal, 1)
           TerminalOperations.eraseFromCursor(terminal)
           terminal.flush()
-          line = line.substring(0, line.length -1)
+          line = line.substring(0, line.length - 1)
           x -= 1
         }
       } else if (event.startsWith(ESC)) {
@@ -321,17 +321,17 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
             case Left(error) => showError(error)
             case _ =>
           }
-        // Down
+          // Down
         } else if (cmd == "[B") {
           history.succ() match {
             case Right(Some(command)) => processHistory(command)
             case Left(error) => showError(error)
             case _ =>
           }
-  //        for (c <- event) {
-  //          terminal.add(c.toInt + CRLF)
-  //        }
-  //        terminal.flush()
+          //        for (c <- event) {
+          //          terminal.add(c.toInt + CRLF)
+          //        }
+          //        terminal.flush()
         }
       } else {
         terminal.add(event)
@@ -342,7 +342,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private def handleCompletion() : Unit = {
+  private def handleCompletion(): Unit = {
     completions.complete(line, this) match {
       case NewLine(newLine) =>
         eraseToPrompt()
@@ -365,7 +365,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
 
   private def processHistory(command: String) {
     if (x != xPrompt) {
-//      terminal.add(ESC + "[" + (x - xPrompt) + "D")
+      //      terminal.add(ESC + "[" + (x - xPrompt) + "D")
       eraseToPrompt()
     }
     terminal.add(command)
@@ -396,7 +396,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private [VirtualShellImpl] class CommandInput extends ShellInput {
+  private[VirtualShellImpl] class CommandInput extends ShellInput {
     private val opened = mutable.HashMap[ShellInputDescriptor, mutable.Subscriber[String, mutable.Publisher[String]]]()
 
     override def subscribe(fun: Function[String, Unit]): ShellInputDescriptor = {

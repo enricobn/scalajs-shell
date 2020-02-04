@@ -1,7 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualCommandOperations
-import org.enricobn.terminal.Terminal
+import org.enricobn.terminal._
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.enricobn.vfs.utils.Utils.RightBiasedEither
@@ -20,7 +20,6 @@ import scala.language.reflectiveCalls
 @JSExport("TestShellFactory")
 object TestShellFactory {
 
-  @JSExport
   def create(terminal: Terminal) : VirtualShell = {
     val _fs = InMemoryFS(
       {VirtualUsersManagerFileImpl(_, "root").right.get},
@@ -51,5 +50,18 @@ object TestShellFactory {
       case Right(shell) =>
         shell
     }
+  }
+
+  @JSExport
+  def create(screen: TextScreen, inputHandler: InputHandler, logger: JSLogger, soundResource: String = null) : VirtualShell = {
+    val colors = new TermColors()
+    colors.set(ColorEnum.blue, "#6060ff")
+    colors.set(ColorEnum.green, "#00ee00")
+    colors.set(ColorEnum.white, "#d0d0d0")
+
+    val terminal = new TerminalImpl(screen, inputHandler, logger, soundResource, colors)
+
+    create(terminal)
+
   }
 }
