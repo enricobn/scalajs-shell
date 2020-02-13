@@ -1,10 +1,10 @@
 DOING
 ------
-- run tests with sbt (js)?
 
 NEXT
 -----
 - support for more complex command arguments
+- run tests with sbt (js)?
 - ls by default should not show all information use ls -l instead
 - sbt publishLocal does not run tests
 - should Ctrl-C be handled automatically by the shell?

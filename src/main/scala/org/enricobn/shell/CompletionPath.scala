@@ -41,7 +41,7 @@ object CompletionPath {
         if (forFile)
           folder.findFolder(remaining) match {
             case Left(_) => UnknownPath()
-            case Right(Some(f)) => PartialPath(f, remaining + VirtualFS.pathSeparator, None)
+            case Right(Some(f)) => PartialPath(f, relativePath + remaining + VirtualFS.pathSeparator, None)
             case _ => PartialPath(folder, relativePath, Some(remaining))
           }
         else
