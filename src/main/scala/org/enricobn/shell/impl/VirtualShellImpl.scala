@@ -86,6 +86,14 @@ object VirtualShellImpl {
     removed.toList
   }
 
+  def prompt(user: String, currentPath: String): String = {
+    formatUserPrompt(user) + ":" +
+      new TerminalColors().bold().blue(currentPath) + "$ "
+  }
+
+  private[impl] def formatUserPrompt(user: String): String = {
+    new TerminalColors().bold().green(user).toString()
+  }
 }
 
 @JSExport(name = "VirtualShell")
@@ -277,17 +285,9 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   }
 
   private def prompt() {
-    //    val prompt = new ShellColors()
-    //        .yellow(vum.currentUser + ":")
-    //        .add(" ")
-    //        .bold.blue
-    //          .add(currentFolder.path)
-    //        .endAll
-    //        .add("$ ")
-    val prompt = new TerminalColors().bold().green(authentication.user) + ":" +
-      new TerminalColors().bold().blue(currentFolder.path) + "$ "
+    val prompt = VirtualShellImpl.prompt(authentication.user, currentFolder.path)
 
-    terminal.add(prompt.toString)
+    terminal.add(prompt)
     terminal.flush()
     x = prompt.length
     xPrompt = prompt.length

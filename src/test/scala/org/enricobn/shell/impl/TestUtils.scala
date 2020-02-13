@@ -7,9 +7,9 @@ object TestUtils extends MockFactory {
 
   def expectPrompt(terminal : Terminal,  prompt : Boolean = true): Unit = {
     if (prompt) {
-      (terminal.add _).expects(where { message: String => message.contains("guest:") })
+      (terminal.add _).expects(where { message: String => message.contains(VirtualShellImpl.formatUserPrompt("guest")) })
     } else {
-      (terminal.add _).expects(where { message: String => message.contains("guest:") }).never()
+      (terminal.add _).expects(where { message: String => message.contains(VirtualShellImpl.formatUserPrompt("guest")) }).never()
     }
   }
 
