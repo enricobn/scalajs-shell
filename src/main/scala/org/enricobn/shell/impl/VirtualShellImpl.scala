@@ -92,7 +92,7 @@ object VirtualShellImpl {
   }
 
   private[impl] def formatUserPrompt(user: String): String = {
-    Console.BOLD + Console.GREEN_B + user + Console.RESET
+    Console.BOLD + Console.GREEN + user + Console.RESET
   }
 }
 
