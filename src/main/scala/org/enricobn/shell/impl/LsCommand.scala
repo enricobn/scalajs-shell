@@ -2,7 +2,6 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.{ShellInput, ShellOutput, VirtualProcess}
 import org.enricobn.terminal.Terminal._
-import org.enricobn.terminal.TerminalColors
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
 
@@ -43,9 +42,7 @@ object LsCommand extends VirtualCommandAbstract("ls", FolderArgument("folder", r
     var s = getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  " + "%1$-10s".format(node.group) + "  "
 
     if (node.isInstanceOf[VirtualFolder]) {
-      val colored = new TerminalColors()
-      colored.blue.add(node.name).end
-      s += (colored + " ")
+      s += Console.BLUE + node.name + Console.RESET
     } else {
       s += node.name
     }

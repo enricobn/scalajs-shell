@@ -6,7 +6,7 @@ import org.enricobn.shell.ShellInput.ShellInputDescriptor
 import org.enricobn.shell._
 import org.enricobn.shell.impl.RunStatus.Pid
 import org.enricobn.terminal.Terminal._
-import org.enricobn.terminal.{StringPub, Terminal, TerminalColors, TerminalOperations}
+import org.enricobn.terminal.{StringPub, Terminal, TerminalOperations}
 import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
 import org.scalajs.dom
@@ -88,11 +88,11 @@ object VirtualShellImpl {
 
   def prompt(user: String, currentPath: String): String = {
     formatUserPrompt(user) + ":" +
-      new TerminalColors().bold().blue(currentPath) + "$ "
+      Console.BOLD + Console.BLUE + currentPath + Console.RESET + "$ "
   }
 
   private[impl] def formatUserPrompt(user: String): String = {
-    new TerminalColors().bold().green(user).toString()
+    Console.BOLD + Console.GREEN_B + user + Console.RESET
   }
 }
 
