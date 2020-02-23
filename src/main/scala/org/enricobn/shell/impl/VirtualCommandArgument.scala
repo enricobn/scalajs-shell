@@ -12,14 +12,16 @@ import scala.collection.mutable.ListBuffer
 trait VirtualCommandArgument[+T] {
   val required: Boolean
   val name: String
+
   def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, T]
+
   def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String]
 }
 
 private object VirtualArgumentCommon {
 
   def completeFolder(shell: VirtualShell, value: String, previousArguments: Seq[Any],
-                        filter: (VirtualFolder, VirtualShell) => Boolean): Seq[String] = {
+                     filter: (VirtualFolder, VirtualShell) => Boolean): Seq[String] = {
     implicit val authentication: Authentication = shell.authentication
 
     CompletionPath(shell, value, forFile = false) match {
@@ -94,10 +96,10 @@ case class FolderArgument(override val name: String, override val required: Bool
     shell.toFolder(value) match {
       case Left(_) => Left(s"$name: $value: no such directory")
       case Right(folder) =>
-          if (filter.apply(folder, shell))
-            Right(folder)
-          else
-            Left(s"$name: $value: no such directory")
+        if (filter.apply(folder, shell))
+          Right(folder)
+        else
+          Left(s"$name: $value: no such directory")
     }
   }
 
@@ -173,8 +175,8 @@ case class IntArgument(override val name: String, override val required: Boolean
   override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, Int] =
     try {
       Right(value.toInt)
-    } catch  {
-      case _ : NumberFormatException => Left(s"$name: invalid number.")
+    } catch {
+      case _: NumberFormatException => Left(s"$name: invalid number.")
     }
 
   override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = Seq.empty
@@ -202,7 +204,7 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
     }
   })
 
-  def parse(shell: VirtualShell, commandName: String, commandArgs: String*) : Either[String, Seq[Any]] = {
+  def parse(shell: VirtualShell, commandName: String, commandArgs: String*): Either[String, Seq[Any]] = {
     if (commandArgs.length < args.count(_.required)) {
       Left("usage: " + commandName + " " + args.foldLeft("")(_ + _.name + " "))
     } else {
@@ -210,7 +212,7 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
     }
   }
 
-  def complete(shell: VirtualShell, line: String) : Seq[String] = {
+  def complete(shell: VirtualShell, line: String): Seq[String] = {
     val parsedLine = new CommandLine(line)
 
     val proposals =
@@ -223,7 +225,7 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
           case Left(_) => Seq.empty
           case Right(result) =>
             args(parsedLine.args.length - 1)
-                                                              .complete(shell, parsedLine.lastArgument.get, result)
+              .complete(shell, parsedLine.lastArgument.get, result)
         }
       } else {
         parseInternal(shell, parsedLine.args) match {
@@ -238,14 +240,14 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
     // For example if the argument is a file then it's an existent file, in that case and if there are more
     // mandatory arguments, then I add a space to the result, so the user can digit the next arg.
 
-//    if (proposals.size == 1) {
-//      proposals.map(_ + " ")
-//    } else {
-//      proposals
-//    }
+    //    if (proposals.size == 1) {
+    //      proposals.map(_ + " ")
+    //    } else {
+    //      proposals
+    //    }
   }
 
-  private def parseInternal(shell: VirtualShell, lineArgs: Seq[String]) : Either[String, Seq[Any]] = {
+  private def parseInternal(shell: VirtualShell, lineArgs: Seq[String]): Either[String, Seq[Any]] = {
     val result = new ListBuffer[Any]
     val zipped = lineArgs
       .zip(args)
