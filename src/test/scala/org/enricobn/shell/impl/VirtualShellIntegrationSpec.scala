@@ -278,6 +278,30 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     scheduler.join()
   }
 
+  "minimumCommon" should "work" in {
+    val result = VirtualShellImpl.minimumCommon(Seq("user1", "user2"))
+
+    assert(result == "user")
+  }
+
+  "minimumCommon with one value" should "work" in {
+    val result = VirtualShellImpl.minimumCommon(Seq("user1"))
+
+    assert(result == "user1")
+  }
+
+  "minimumCommon with unrelated values" should "return an empty string" in {
+    val result = VirtualShellImpl.minimumCommon(Seq("user1", "dummy"))
+
+    assert(result == "")
+  }
+
+  "minimumCommon with empty seq" should "return an empty string" in {
+    val result = VirtualShellImpl.minimumCommon(Seq.empty)
+
+    assert(result == "")
+  }
+
   private class InteractiveCommand() extends VirtualCommand {
     override def name: String = "int"
 

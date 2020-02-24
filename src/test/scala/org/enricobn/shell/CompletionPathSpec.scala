@@ -9,6 +9,8 @@ import org.enricobn.vfs.{Authentication, IOError, VirtualFolder}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.language.reflectiveCalls
+
 class CompletionPathSpec extends FlatSpec with MockFactory with Matchers {
 
   private def fixture = {
@@ -30,10 +32,30 @@ class CompletionPathSpec extends FlatSpec with MockFactory with Matchers {
     }
   }
 
-
   "completion for ../user1" should "work" in {
     val f = fixture
 
+    implicit val authentication: Authentication = f.shell.authentication
+
+    createUsersExample(f)
+
+    val path = CompletionPath(f.shell, "../user1", forFile = true)
+
+    path match {
+      case PartialPath(_, relativePath, _) =>
+        assert(relativePath == "../user1/")
+      case _ => fail()
+    }
+
+  }
+
+  private def createUsersExample(f: Object {
+    val shell: VirtualShellImpl
+
+    val command: VirtualCommand
+
+    val guestFolder: VirtualFolder
+  }) = {
     implicit val authentication: Authentication = f.shell.authentication
 
     val errorOrUnit: Either[IOError, Unit] = for {
@@ -48,15 +70,5 @@ class CompletionPathSpec extends FlatSpec with MockFactory with Matchers {
     }
 
     errorOrUnit.left.foreach(e => fail(e.message))
-
-    val path = CompletionPath(f.shell, "../user1", forFile = true)
-
-    path match {
-      case UnknownPath() => fail()
-      case PartialPath(_, relativePath, _) =>
-        assert(relativePath == "../user1/")
-    }
-
   }
-
 }

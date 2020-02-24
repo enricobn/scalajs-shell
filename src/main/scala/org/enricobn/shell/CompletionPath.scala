@@ -50,10 +50,9 @@ object CompletionPath {
             case Right(folders) =>
               val matchingFolders = folders.filter(_.name.startsWith(remaining))
               if (matchingFolders.nonEmpty)
-                // the folder is only one and matches exactly the name given by the user, so I don't complete nothing
-                // is already right
+                // the folder is only one and matches exactly the name given by the user
                 if (matchingFolders.size == 1 && matchingFolders.head.name == remaining)
-                  UnknownPath()
+                  CompletePath(folder, remaining)
                 else
                   PartialPath(folder, relativePath, Some(remaining))
               else
@@ -80,7 +79,7 @@ case class PartialPath(folder: VirtualFolder, relativePath: String, remaining: O
 //  * @param folder the resolved folder
 //  * @param relativePath the path relative to the currentFolder of the resolveFolder method
 //  */
-//case class CompletePath(folder: VirtualFolder, relativePath: String) extends CompletionPath
+case class CompletePath(folder: VirtualFolder, relativePath: String) extends CompletionPath
 
 case class UnknownPath() extends CompletionPath
 

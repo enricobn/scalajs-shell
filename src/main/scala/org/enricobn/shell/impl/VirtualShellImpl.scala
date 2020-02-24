@@ -91,6 +91,33 @@ object VirtualShellImpl {
       Console.BOLD + Console.BLUE + currentPath + Console.RESET + "$ "
   }
 
+  def minimumCommon(list: Seq[String]): String = {
+    if (list.isEmpty) {
+      return ""
+    }
+
+    var common = ""
+    var found = false
+
+    val min = list.minBy(_.length)
+
+    while (!found) {
+      if (min.length <= common.length) {
+        found = true
+      } else {
+        val nextCommon = min.substring(0, common.length + 1)
+
+        if (list.forall(_.startsWith(nextCommon))) {
+          common = nextCommon
+        } else {
+          found = true
+        }
+      }
+    }
+
+    common
+  }
+
   private[impl] def formatUserPrompt(user: String): String = {
     Console.BOLD + Console.GREEN + user + Console.RESET
   }
@@ -356,12 +383,22 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         proposals.foreach(s => terminal.add(s + CRLF))
         prompt()
 
+        if (proposals.size > 1) {
+          val common = VirtualShellImpl.minimumCommon(proposals)
+
+          val parsedLine = new CommandLine(line)
+
+          line = parsedLine.reconstructLine(common)
+        }
+
         terminal.add(line)
         terminal.flush()
         x = xPrompt + line.length
       case NoProposals() =>
     }
   }
+
+
 
   private def processHistory(command: String) {
     if (x != xPrompt) {

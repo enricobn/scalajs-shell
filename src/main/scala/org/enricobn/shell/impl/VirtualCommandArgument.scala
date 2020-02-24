@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{CompletionPath, PartialPath, UnknownPath}
+import org.enricobn.shell.{CompletePath, CompletionPath, PartialPath, UnknownPath}
 import org.enricobn.vfs._
 import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
@@ -27,7 +27,6 @@ private object VirtualArgumentCommon {
     CompletionPath(shell, value, forFile = false) match {
       case UnknownPath() => Seq.empty
       case partialPath: PartialPath =>
-
         if (!filter.apply(partialPath.folder, shell)) {
           return Seq.empty
         }
@@ -43,6 +42,7 @@ private object VirtualArgumentCommon {
               .map(partialPath.relativePath + _.name + "/")
               .toSeq
         }
+      case CompletePath(_, _) => Seq(value)
     }
   }
 
