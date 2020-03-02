@@ -3,6 +3,7 @@ DOING
 
 NEXT
 -----
+- /bin/"command" does not work
 - support for more complex command arguments
 - run tests with sbt (js)?
 - ls by default should not show all information use ls -l instead

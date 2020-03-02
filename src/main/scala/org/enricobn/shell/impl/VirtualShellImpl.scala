@@ -129,10 +129,9 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
                        private var _currentFolder: VirtualFolder, private val initialAuthentication: Authentication,
                        private val scheduler: Scheduler = new RequestAnimationFrameScheduler) extends VirtualShell {
   private val name = "Shell " + VirtualShellImpl.shellCount
-  private var line = ""
   private val history = new CommandHistory(new CommandHistoryFileStore(this))
-  private var x = 0
-  private var xPrompt = 0
+  private val editLine = new EditLine(terminal)
+
   private var inputHandler: InputHandler = _
   private val completions = new ShellCompletions(context)
   private val runningCommands = new ListBuffer[RunStatus]()
@@ -316,8 +315,8 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
 
     terminal.add(prompt)
     terminal.flush()
-    x = prompt.length
-    xPrompt = prompt.length
+
+    editLine.prompt(prompt.length)
   }
 
   private[VirtualShellImpl] class InputHandler extends StringPub#Sub {
@@ -325,25 +324,19 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       if (event == CR) {
         terminal.add(CRLF)
         terminal.flush()
-        processLine(line)
-        line = ""
+        processLine(editLine.getLine)
+        editLine.reset()
       } else if (event == TAB) {
-        if (line.nonEmpty) {
+        if (editLine.getLine.nonEmpty) {
           handleCompletion()
         }
       } else if (event == BACKSPACE) {
-        if (line.nonEmpty) {
-          TerminalOperations.moveLeft(terminal, 1)
-          TerminalOperations.eraseFromCursor(terminal)
-          terminal.flush()
-          line = line.substring(0, line.length - 1)
-          x -= 1
-        }
+        editLine.backspace()
       } else if (event.startsWith(ESC)) {
         val cmd = event.substring(1)
         // Up
         if (cmd == "[A") {
-          history.prev(line) match {
+          history.prev(editLine.getLine) match {
             case Right(Some(command)) => processHistory(command)
             case Left(error) => showError(error)
             case _ =>
@@ -355,29 +348,27 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
             case Left(error) => showError(error)
             case _ =>
           }
-          //        for (c <- event) {
-          //          terminal.add(c.toInt + CRLF)
-          //        }
-          //        terminal.flush()
+        } else if (cmd == "[D") {
+          editLine.left()
+        } else if (cmd == "[C") {
+          editLine.right()
+        } else if (cmd == "[H") {
+          editLine.home()
+        } else if (cmd == "[F") {
+          editLine.end()
+        } else if (cmd == "[3~") {
+          editLine.canc()
         }
       } else {
-        terminal.add(event)
-        terminal.flush()
-        line += event
-        x += event.length
+        editLine.add(event)
       }
     }
   }
 
   private def handleCompletion(): Unit = {
-    completions.complete(line, this) match {
+    completions.complete(editLine.getLine, this) match {
       case NewLine(newLine) =>
-        eraseToPrompt()
-        line = newLine
-
-        terminal.add(line)
-        terminal.flush()
-        x = xPrompt + line.length
+        editLine.replaceLine(newLine)
       case Proposals(proposals) =>
         terminal.add(CRLF)
         proposals.foreach(s => terminal.add(s + CRLF))
@@ -386,34 +377,19 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         if (proposals.size > 1) {
           val common = VirtualShellImpl.minimumCommon(proposals)
 
-          val parsedLine = new CommandLine(line)
+          val parsedLine = new CommandLine(editLine.getLine)
 
-          line = parsedLine.reconstructLine(common)
+          editLine.replaceLine(parsedLine.reconstructLine(common))
+        } else {
+          terminal.add(editLine.getLine)
+          terminal.flush()
         }
-
-        terminal.add(line)
-        terminal.flush()
-        x = xPrompt + line.length
       case NoProposals() =>
     }
   }
 
-
-
   private def processHistory(command: String) {
-    if (x != xPrompt) {
-      //      terminal.add(ESC + "[" + (x - xPrompt) + "D")
-      eraseToPrompt()
-    }
-    terminal.add(command)
-    terminal.flush()
-    x = xPrompt + command.length
-    line = command
-  }
-
-  private def eraseToPrompt(): Unit = {
-    TerminalOperations.moveLeft(terminal, x - xPrompt)
-    TerminalOperations.eraseFromCursor(terminal)
+    editLine.replaceLine(command)
   }
 
   private def processLine(line: String) {
@@ -484,7 +460,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
 
       } else if (event == BACKSPACE) {
         if (line.nonEmpty) {
-          TerminalOperations.moveLeft(terminal, 1)
+          TerminalOperations.moveCursorLeft(terminal, 1)
           TerminalOperations.eraseFromCursor(terminal)
           terminal.flush()
           line = line.substring(0, line.length - 1)

@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title>Text screen</title>
+        <title>Shell</title>
     </head>
 
     <body style="background:#131926;color:#b7b7b7;">
@@ -14,6 +14,9 @@
             Your browser does not support the HTML5 canvas tag.</canvas>
 
         <script type="text/javascript">
+            window.onload = function() {
+                document.getElementById("screenCanvas").focus();
+            };
             var logger = new JSLoggerImpl();
             var screen = new CanvasTextScreen('screenCanvas', logger);
             var input = new CanvasInputHandler('screenCanvas');
