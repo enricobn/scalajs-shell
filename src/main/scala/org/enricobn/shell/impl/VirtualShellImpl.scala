@@ -316,7 +316,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     terminal.add(prompt)
     terminal.flush()
 
-    editLine.prompt(prompt.length)
+    editLine.reset()
   }
 
   private[VirtualShellImpl] class InputHandler extends StringPub#Sub {
@@ -324,10 +324,10 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       if (event == CR) {
         terminal.add(CRLF)
         terminal.flush()
-        processLine(editLine.getLine)
+        processLine(editLine.currentLine)
         editLine.reset()
       } else if (event == TAB) {
-        if (editLine.getLine.nonEmpty) {
+        if (editLine.currentLine.nonEmpty) {
           handleCompletion()
         }
       } else if (event == BACKSPACE) {
@@ -336,7 +336,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         val cmd = event.substring(1)
         // Up
         if (cmd == "[A") {
-          history.prev(editLine.getLine) match {
+          history.prev(editLine.currentLine) match {
             case Right(Some(command)) => processHistory(command)
             case Left(error) => showError(error)
             case _ =>
@@ -366,7 +366,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   }
 
   private def handleCompletion(): Unit = {
-    completions.complete(editLine.getLine, this) match {
+    completions.complete(editLine.currentLine, this) match {
       case NewLine(newLine) =>
         editLine.replaceLine(newLine)
       case Proposals(proposals) =>
@@ -377,11 +377,11 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         if (proposals.size > 1) {
           val common = VirtualShellImpl.minimumCommon(proposals)
 
-          val parsedLine = new CommandLine(editLine.getLine)
+          val parsedLine = new CommandLine(editLine.currentLine)
 
           editLine.replaceLine(parsedLine.reconstructLine(common))
         } else {
-          terminal.add(editLine.getLine)
+          terminal.add(editLine.currentLine)
           terminal.flush()
         }
       case NoProposals() =>

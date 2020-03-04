@@ -11,13 +11,11 @@ class EditLineSpec extends FlatSpec with MockFactory with Matchers {
 
     val editLine = new EditLine(term)
 
-    editLine.prompt(5) // Hello
-
     editLine.add("lp")
     editLine.left()
     editLine.backspace()
 
-    assert(editLine.getLine == "p")
+    assert(editLine.currentLine == "p")
   }
 
   "backspace from home" should "not delete" in {
@@ -25,13 +23,11 @@ class EditLineSpec extends FlatSpec with MockFactory with Matchers {
 
     val editLine = new EditLine(term)
 
-    editLine.prompt(5) // Hello
-
     editLine.add("lp")
     editLine.home()
     editLine.backspace()
 
-    assert(editLine.getLine == "lp")
+    assert(editLine.currentLine == "lp")
   }
 
   "replaceLine" should "work" in {
@@ -39,40 +35,37 @@ class EditLineSpec extends FlatSpec with MockFactory with Matchers {
 
     val editLine = new EditLine(term)
 
-    editLine.prompt(5) // Hello
     editLine.add("l")
     editLine.add("s")
     editLine.eraseToPrompt()
     editLine.replaceLine("cat . history")
 
-    assert(editLine.x == 5 + "cat . history".length)
+    assert(editLine.x == "cat . history".length)
 
     editLine.eraseToPrompt()
     editLine.replaceLine("ls")
 
-    assert(editLine.x == 7)
+    assert(editLine.x == 2)
   }
 
   "canc" should "work" in {
     val term = stub[Terminal]
 
     val editLine = new EditLine(term)
-    editLine.prompt(5) // Hello
 
     editLine.add("ls")
 
     editLine.left()
     editLine.canc()
 
-    assert(editLine.x == 6)
-    assert(editLine.getLine == "l")
+    assert(editLine.x == 1)
+    assert(editLine.currentLine == "l")
   }
 
   "canc top" should "work" in {
     val term = stub[Terminal]
 
     val editLine = new EditLine(term)
-    editLine.prompt(5) // Hello
 
     editLine.add("ls")
 
@@ -80,8 +73,8 @@ class EditLineSpec extends FlatSpec with MockFactory with Matchers {
     editLine.left()
     editLine.canc()
 
-    assert(editLine.x == 5)
-    assert(editLine.getLine == "s")
+    assert(editLine.x == 0)
+    assert(editLine.currentLine == "s")
   }
 
 }

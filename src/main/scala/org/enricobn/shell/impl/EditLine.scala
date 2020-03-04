@@ -5,7 +5,6 @@ import org.enricobn.terminal.{Terminal, TerminalOperations}
 class EditLine(private val terminal: Terminal) {
   private var line = ""
   private[impl] var x = 0
-  private var xPrompt = 0
 
   def replaceLine(newLine: String): Unit = {
     eraseToPrompt()
@@ -13,7 +12,7 @@ class EditLine(private val terminal: Terminal) {
 
     terminal.add(line)
     terminal.flush()
-    x = xPrompt + line.length
+    x = line.length
   }
 
   def add(event: String): Unit = {
@@ -27,24 +26,24 @@ class EditLine(private val terminal: Terminal) {
     x = newX
 
     terminal.add(line)
-    TerminalOperations.moveCursorLeft(terminal, xPrompt + line.length - x)
+    TerminalOperations.moveCursorLeft(terminal, line.length - x)
     terminal.flush()
   }
 
   def home(): Unit = {
     TerminalOperations.moveCursorLeft(terminal, distanceFromPrompt)
     terminal.flush()
-    x = xPrompt
+    x = 0
   }
 
   def end(): Unit = {
-    TerminalOperations.moveCursorRight(terminal, xPrompt + line.length - x)
+    TerminalOperations.moveCursorRight(terminal, line.length - x)
     terminal.flush()
-    x = xPrompt + line.length
+    x = line.length
   }
 
   def left(): Unit = {
-    if (x <= xPrompt ) {
+    if (x <= 0) {
       return
     }
     TerminalOperations.moveCursorLeft(terminal, 1)
@@ -53,7 +52,7 @@ class EditLine(private val terminal: Terminal) {
   }
 
   def right(): Unit = {
-    if (x >= xPrompt + line.length) {
+    if (x >= line.length) {
       return
     }
     TerminalOperations.moveCursorRight(terminal, 1)
@@ -62,7 +61,7 @@ class EditLine(private val terminal: Terminal) {
   }
 
   def backspace(): Unit = {
-    if (line.nonEmpty && x > xPrompt) {
+    if (line.nonEmpty && x > 0) {
       TerminalOperations.moveCursorLeft(terminal, 1)
       TerminalOperations.eraseFromCursor(terminal)
       terminal.add(line.substring(distanceFromPrompt))
@@ -74,29 +73,24 @@ class EditLine(private val terminal: Terminal) {
   }
 
   private def distanceFromPrompt: Int = {
-    x - xPrompt
+    x
   }
 
   def reset(): Unit = {
     line = ""
-    x = xPrompt
+    x = 0
   }
 
-  def prompt(len: Int): Unit = {
-      x = len
-      xPrompt = len
-  }
-
-  def getLine: String = line
+  def currentLine: String = line
 
   def eraseToPrompt(): Unit = {
     TerminalOperations.moveCursorLeft(terminal, distanceFromPrompt)
     TerminalOperations.eraseFromCursor(terminal)
-    x = xPrompt
+    x = 0
   }
 
   def canc(): Unit = {
-    if (line.nonEmpty && x < xPrompt + line.length) {
+    if (line.nonEmpty && x < line.length) {
       TerminalOperations.eraseFromCursor(terminal)
       terminal.add(line.substring(distanceFromPrompt + 1))
       TerminalOperations.moveCursorLeft(terminal, line.length - distanceFromPrompt -1)
