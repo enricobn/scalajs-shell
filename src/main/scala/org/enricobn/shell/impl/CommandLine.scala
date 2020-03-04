@@ -4,7 +4,7 @@ package org.enricobn.shell.impl
   * Created by enrico on 12/14/16.
   */
 class CommandLine(line: String) {
-  private val words = line.split(" ").toList
+  private val words = line.split("\\s+").toList
 
   def incompleteCommand: Boolean = words.length == 1 && !line.endsWith(" ")
 
