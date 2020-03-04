@@ -154,7 +154,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     vum.getUser(authentication) match {
       case Some(user) => if (user == VirtualUsersManager.ROOT) {
         if (areInteractiveCommandsRunning) {
-          prompt()
+          prompt(true)
           areInteractiveCommandsRunning = false
         }
         runningCommands.synchronized {
@@ -175,7 +175,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   }
 
   def start() {
-    prompt()
+    prompt(true)
     startInternal()
   }
 
@@ -185,7 +185,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       case Left(error) =>
         terminal.add(s"Error starting with command $command ${args.mkString(",")}: ${error.message}\n")
         terminal.flush()
-        prompt()
+        prompt(true)
       case Right(_) =>
     }
   }
@@ -265,7 +265,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         } else {
           val status = RunStatus(RunStatus.newPid(), process, commandInput, background)
           if (!areInteractiveCommandsRunning && !status.interactive) {
-            prompt()
+            prompt(true)
           }
           val areInteractiveCommandsRunningBefore = areInteractiveCommandsRunning
 
@@ -301,7 +301,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         if (inputHandler != null) {
           terminal.onInput(inputHandler)
         }
-        prompt()
+        prompt(true)
       }
     }
 
@@ -310,13 +310,15 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private def prompt() {
+  private def prompt(updateEditLine: Boolean) {
     val prompt = VirtualShellImpl.prompt(authentication.user, currentFolder.path)
 
     terminal.add(prompt)
     terminal.flush()
 
-    editLine.reset()
+    if (updateEditLine) {
+      editLine.reset()
+    }
   }
 
   private[VirtualShellImpl] class InputHandler extends StringPub#Sub {
@@ -372,17 +374,21 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       case Proposals(proposals) =>
         terminal.add(CRLF)
         proposals.foreach(s => terminal.add(s + CRLF))
-        prompt()
+
+        val currentLine = editLine.currentLine
+
+        prompt(true)
 
         if (proposals.size > 1) {
           val common = VirtualShellImpl.minimumCommon(proposals)
 
-          val parsedLine = new CommandLine(editLine.currentLine)
+          val parsedLine = new CommandLine(currentLine)
 
           editLine.replaceLine(parsedLine.reconstructLine(common))
         } else {
-          terminal.add(editLine.currentLine)
+          terminal.add(currentLine)
           terminal.flush()
+          editLine.replaceLine(currentLine)
         }
       case NoProposals() =>
     }
@@ -401,11 +407,11 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       run(false, words.head, words.tail.toArray: _*) match {
         case Left(error) =>
           terminal.add(error.message + CRLF)
-          prompt()
+          prompt(true)
         case Right(_) =>
       }
     } else {
-      prompt()
+      prompt(true)
     }
   }
 

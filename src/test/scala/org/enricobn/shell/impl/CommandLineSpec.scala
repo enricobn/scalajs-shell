@@ -53,4 +53,11 @@ class CommandLineSpec extends FlatSpec with MockFactory with Matchers {
     assert(sut.reconstructLine("world") == "cd hello world")
   }
 
+  "command with argument with more than one space between command and argument" should "return one argument" in {
+    val sut = new CommandLine("cd  hello")
+    require(sut.commandName == "cd")
+    assert(sut.args.length == 1)
+    require(sut.lastArgument.contains("hello"))
+  }
+
 }

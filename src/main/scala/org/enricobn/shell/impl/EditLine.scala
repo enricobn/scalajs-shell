@@ -16,7 +16,7 @@ class EditLine(private val terminal: Terminal) {
   }
 
   def add(event: String): Unit = {
-    val cursor = distanceFromPrompt
+    val cursor = x
     line = line.substring(0, cursor) + event + line.substring(cursor)
 
     val newX = x + event.length
@@ -31,7 +31,7 @@ class EditLine(private val terminal: Terminal) {
   }
 
   def home(): Unit = {
-    TerminalOperations.moveCursorLeft(terminal, distanceFromPrompt)
+    TerminalOperations.moveCursorLeft(terminal, x)
     terminal.flush()
     x = 0
   }
@@ -64,16 +64,12 @@ class EditLine(private val terminal: Terminal) {
     if (line.nonEmpty && x > 0) {
       TerminalOperations.moveCursorLeft(terminal, 1)
       TerminalOperations.eraseFromCursor(terminal)
-      terminal.add(line.substring(distanceFromPrompt))
-      TerminalOperations.moveCursorLeft(terminal, line.length - distanceFromPrompt)
+      terminal.add(line.substring(x))
+      TerminalOperations.moveCursorLeft(terminal, line.length - x)
       terminal.flush()
-      line = line.substring(0, distanceFromPrompt -1) + line.substring(distanceFromPrompt)
+      line = line.substring(0, x -1) + line.substring(x)
       x -= 1
     }
-  }
-
-  private def distanceFromPrompt: Int = {
-    x
   }
 
   def reset(): Unit = {
@@ -84,7 +80,7 @@ class EditLine(private val terminal: Terminal) {
   def currentLine: String = line
 
   def eraseToPrompt(): Unit = {
-    TerminalOperations.moveCursorLeft(terminal, distanceFromPrompt)
+    TerminalOperations.moveCursorLeft(terminal, x)
     TerminalOperations.eraseFromCursor(terminal)
     x = 0
   }
@@ -92,10 +88,10 @@ class EditLine(private val terminal: Terminal) {
   def canc(): Unit = {
     if (line.nonEmpty && x < line.length) {
       TerminalOperations.eraseFromCursor(terminal)
-      terminal.add(line.substring(distanceFromPrompt + 1))
-      TerminalOperations.moveCursorLeft(terminal, line.length - distanceFromPrompt -1)
+      terminal.add(line.substring(x + 1))
+      TerminalOperations.moveCursorLeft(terminal, line.length - x -1)
       terminal.flush()
-      line = line.substring(0, distanceFromPrompt) + line.substring(distanceFromPrompt + 1)
+      line = line.substring(0, x) + line.substring(x + 1)
     }
   }
 
