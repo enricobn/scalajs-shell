@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.VirtualCommand
+import org.enricobn.shell.{Completion, VirtualCommand}
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
@@ -44,32 +44,32 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
   "completion of 'cd /'" should "return the list of root folders" in {
     val f = fixture
     val result = f.command.completion("cd /", f.shell)
-    assert(result == Seq("/bin/", "/etc/", "/home/"), result)
+    assert(result == Seq(Completion("/bin/", "bin"), Completion("/etc/", "etc"), Completion("/home/", "home")), result)
   }
 
   "completion of 'cd /home/'" should "return /home/guest/ and /home/root" in {
     val f = fixture
     val result = f.command.completion("cd /home/", f.shell)
-    assert(result == Seq("/home/guest/", "/home/root/"), result)
+    assert(result == Seq(Completion("/home/guest/", "guest"), Completion("/home/root/", "root")), result)
   }
 
   "completion of 'cd /h'" should "return /home/" in {
     val f = fixture
     val result = f.command.completion("cd /h", f.shell)
-    assert(result == Seq("/home/"), result)
+    assert(result == Seq(Completion("/home/", "home")), result)
   }
 
   "completion of 'cd ../'" should "return ../guest/ and ../root" in {
     val f = fixture
     val result = f.command.completion("cd ../", f.shell)
-    assert(result == Seq("../guest/", "../root/"), result)
+    assert(result == Seq(Completion("../guest/", "guest"), Completion("../root/", "root")), result)
   }
 
   "completion of 'cd ' in /home" should "return guest/ and root/" in {
     val f = fixture
     f.shell.currentFolder = f.shell.currentFolder.parent.get
     val result = f.command.completion("cd ", f.shell)
-    assert(result == Seq("guest/", "root/"), result)
+    assert(result == Seq(Completion("guest/", "guest"), Completion("root/", "root")), result)
   }
 
   "completion of 'cd nonexistentpath'" should "return no completions" in {
@@ -94,13 +94,13 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
     val f = fixture
     f.shell.currentFolder = f.shell.currentFolder.parent.get
     val result = f.command.completion("cd guest", f.shell)
-    assert(result == List("guest"), result)
+    assert(result == List(Completion("guest", "guest")), result)
   }
 
   "completion of 'cd /home/guest'" should "return one row" in {
     val f = fixture
     val result = f.command.completion("cd /home/guest", f.shell)
-    assert(result == List("/home/guest"), result)
+    assert(result == List(Completion("/home/guest", "guest")), result)
   }
 
   "completion of 'cd /home/guest/pippo'" should "return 2 rows" in {
@@ -114,7 +114,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.command.completion("cd /home/guest/dummy", f.shell)
 
-    assert(result.toList == List("/home/guest/dummy/", "/home/guest/dummy1/"))
+    assert(result.toList == List(Completion("/home/guest/dummy/", "dummy"), Completion("/home/guest/dummy1/", "dummy1")))
   }
 
   "completion of 'cd /home/user1'" should "return a row" in {
@@ -126,7 +126,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.command.completion("cd /home/guest/user1", f.shell)
 
-    assert(result.toList == List("/home/guest/user1"))
+    assert(result.toList == List(Completion("/home/guest/user1", "user1")))
   }
 
   "completion of 'cd /home/user'" should "return 2 rows" in {
@@ -138,7 +138,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.command.completion("cd /home/guest/user", f.shell)
 
-    assert(result.toList == List("/home/guest/user1/", "/home/guest/user2/"))
+    assert(result.toList == List(Completion("/home/guest/user1/", "user1"), Completion("/home/guest/user2/", "user2")))
   }
 
   "completion of 'cd user1' from home" should "return a row" in {
@@ -152,7 +152,7 @@ class CdCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.command.completion("cd user1", f.shell)
 
-    assert(result.toList == List("user1"))
+    assert(result.toList == List(Completion("user1", "user1")))
   }
 
   private def createUsersExample(f: Object {

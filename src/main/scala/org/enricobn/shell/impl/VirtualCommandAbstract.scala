@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{ShellInput, ShellOutput, VirtualCommand, VirtualProcess}
+import org.enricobn.shell._
 import org.enricobn.vfs.{Authentication, IOError}
 
 abstract class VirtualCommandAbstract(val name: String, val virtualArguments: VirtualCommandArgument[_]*) extends VirtualCommand {
@@ -15,7 +15,7 @@ abstract class VirtualCommandAbstract(val name: String, val virtualArguments: Vi
     }
   }
 
-  override def completion(line: String, shell: VirtualShell): Seq[String] = {
+  override def completion(line: String, shell: VirtualShell): Seq[Completion] = {
     arguments.complete(shell, line)
   }
 

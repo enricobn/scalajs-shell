@@ -39,7 +39,7 @@ trait VirtualCommand {
 
   def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*) : Either[IOError, VirtualProcess]
 
-  def completion(line: String, shell: VirtualShell): Seq[String]
+  def completion(line: String, shell: VirtualShell): Seq[Completion]
 
   override def toString: String = "[executable file]"
 

@@ -1,7 +1,5 @@
 package org.enricobn.shell.impl
 
-import java.util.UUID
-
 import org.enricobn.shell.ShellInput.ShellInputDescriptor
 import org.enricobn.shell._
 import org.enricobn.shell.impl.RunStatus.Pid
@@ -11,6 +9,7 @@ import org.enricobn.vfs.IOError._
 import org.enricobn.vfs._
 import org.scalajs.dom
 
+import java.util.UUID
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
@@ -125,14 +124,15 @@ object VirtualShellImpl {
 
 @JSExport(name = "VirtualShell")
 @JSExportAll
-class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager, val context: VirtualShellContext,
-                       private var _currentFolder: VirtualFolder, private val initialAuthentication: Authentication,
+class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager,
+                       val context: VirtualShellContext, private var _currentFolder: VirtualFolder,
+                       private val initialAuthentication: Authentication,
                        private val scheduler: Scheduler = new RequestAnimationFrameScheduler) extends VirtualShell {
   private val name = "Shell " + VirtualShellImpl.shellCount
   private val history = new CommandHistory(new CommandHistoryFileStore(this))
   private val editLine = new EditLine(terminal)
 
-  private var inputHandler: InputHandler = _
+  var inputHandler: StringPub#Sub = _
   private val completions = new ShellCompletions(context)
   private val runningCommands = new ListBuffer[RunStatus]()
   private var stopped = true
@@ -176,11 +176,11 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
 
   def start() {
     prompt(true)
-    startInternal()
+    startInternal(new InputHandler())
   }
 
   def startWithCommand(background: Boolean, command: String, args: String*): Unit = {
-    startInternal()
+    startInternal(new InputHandler())
     run(background, command, args: _*) match {
       case Left(error) =>
         terminal.add(s"Error starting with command $command ${args.mkString(",")}: ${error.message}\n")
@@ -190,8 +190,8 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private def startInternal() {
-    inputHandler = new InputHandler()
+  private def startInternal(inputHandler: StringPub#Sub) {
+    this.inputHandler = inputHandler
     terminal.onInput(inputHandler)
     stopped = false
     updateRunningCommands()
@@ -330,7 +330,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
         editLine.reset()
       } else if (event == TAB) {
         if (editLine.currentLine.nonEmpty) {
-          handleCompletion()
+          handleCompletion(editLine)
         }
       } else if (event == BACKSPACE) {
         editLine.backspace()
@@ -367,20 +367,20 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private def handleCompletion(): Unit = {
+  private[impl] def handleCompletion(editLine: EditLine): Unit = {
     completions.complete(editLine.currentLine, this) match {
       case NewLine(newLine) =>
         editLine.replaceLine(newLine)
       case Proposals(proposals) =>
         terminal.add(CRLF)
-        proposals.foreach(s => terminal.add(s + CRLF))
+        proposals.foreach(s => terminal.add(s.relative + CRLF))
 
         val currentLine = editLine.currentLine
 
         prompt(true)
 
         if (proposals.size > 1) {
-          val common = VirtualShellImpl.minimumCommon(proposals)
+          val common = VirtualShellImpl.minimumCommon(proposals.map(_.absolute))
 
           val parsedLine = new CommandLine(currentLine)
 

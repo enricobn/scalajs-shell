@@ -26,7 +26,9 @@ class EditLine(private val terminal: Terminal) {
     x = newX
 
     terminal.add(line)
+
     TerminalOperations.moveCursorLeft(terminal, line.length - x)
+
     terminal.flush()
   }
 
@@ -67,7 +69,7 @@ class EditLine(private val terminal: Terminal) {
       terminal.add(line.substring(x))
       TerminalOperations.moveCursorLeft(terminal, line.length - x)
       terminal.flush()
-      line = line.substring(0, x -1) + line.substring(x)
+      line = line.substring(0, x - 1) + line.substring(x)
       x -= 1
     }
   }
@@ -80,16 +82,18 @@ class EditLine(private val terminal: Terminal) {
   def currentLine: String = line
 
   def eraseToPrompt(): Unit = {
+    //if (x > 0) {
     TerminalOperations.moveCursorLeft(terminal, x)
     TerminalOperations.eraseFromCursor(terminal)
     x = 0
+    //}
   }
 
   def canc(): Unit = {
     if (line.nonEmpty && x < line.length) {
       TerminalOperations.eraseFromCursor(terminal)
       terminal.add(line.substring(x + 1))
-      TerminalOperations.moveCursorLeft(terminal, line.length - x -1)
+      TerminalOperations.moveCursorLeft(terminal, line.length - x - 1)
       terminal.flush()
       line = line.substring(0, x) + line.substring(x + 1)
     }

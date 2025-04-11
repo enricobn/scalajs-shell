@@ -1,5 +1,6 @@
 package org.enricobn.shell.impl
 
+import org.enricobn.shell.Completion
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs._
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
@@ -36,7 +37,8 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     val sut = FileArgument("file", required = true)
     val completions = sut.complete(f.shell, "/", Seq.empty)
 
-    assert(completions == List("/rootFile", "/etc/", "/home/", "/usr/"))
+    assert(completions == List(Completion("/rootFile", "rootFile"), Completion("/etc/", "etc/"),
+      Completion("/home/", "home/"), Completion("/usr/", "usr/")))
   }
 
   "parse of FileArgument" should "be fine" in {

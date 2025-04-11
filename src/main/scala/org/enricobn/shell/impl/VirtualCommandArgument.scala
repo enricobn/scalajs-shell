@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{CompletePath, CompletionPath, PartialPath, UnknownPath}
+import org.enricobn.shell._
 import org.enricobn.vfs._
 import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
@@ -15,13 +15,13 @@ trait VirtualCommandArgument[+T] {
 
   def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, T]
 
-  def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String]
+  def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[Completion]
 }
 
 private object VirtualArgumentCommon {
 
   def completeFolder(shell: VirtualShell, value: String, previousArguments: Seq[Any],
-                     filter: (VirtualFolder, VirtualShell) => Boolean): Seq[String] = {
+                     filter: (VirtualFolder, VirtualShell) => Boolean): Seq[Completion] = {
     implicit val authentication: Authentication = shell.authentication
 
     CompletionPath(shell, value, forFile = false) match {
@@ -39,15 +39,18 @@ private object VirtualArgumentCommon {
               folders = folders.filter(_.name.startsWith(partialPath.remaining.get))
             }
             folders
-              .map(partialPath.relativePath + _.name + "/")
+              .map(folder => Completion(partialPath.relativePath + folder.name + "/", folder.name))
               .toSeq
         }
-      case CompletePath(_, _) => Seq(value)
+      case CompletePath(folder, relativePath) => {
+        //Seq(Completion(relativePath + "/" +  folder.name + "/", folder.name))
+        Seq(Completion(value, relativePath))
+      }
     }
   }
 
   def completeFile(shell: VirtualShell, value: String, previousArguments: Seq[Any],
-                   filter: (VirtualFile, VirtualShell) => Boolean): Seq[String] = {
+                   filter: (VirtualFile, VirtualShell) => Boolean): Seq[Completion] = {
     implicit val authentication: Authentication = shell.authentication
 
     CompletionPath(shell, value, forFile = true) match {
@@ -72,7 +75,7 @@ private object VirtualArgumentCommon {
           all.filter(_.startsWith(remaining.get))
         else
           all
-          ).map(relativePath + _)
+          ).map(name => Completion(relativePath + name, name))
 
       case _ => Seq.empty
     }
@@ -103,7 +106,7 @@ case class FolderArgument(override val name: String, override val required: Bool
     }
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[Completion] =
     VirtualArgumentCommon.completeFolder(shell, value, previousArguments, filter)
 
 }
@@ -125,7 +128,7 @@ case class NewFolderArgument(override val name: String, override val required: B
     } yield (parent, path.name)).left.map(_.message)
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[Completion] =
     VirtualArgumentCommon.completeFolder(shell, value, previousArguments, filter)
 
 }
@@ -145,7 +148,7 @@ case class NewFileArgument(override val name: String, override val required: Boo
     } yield (parent, path.name)).left.map(_.message)
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[Completion] =
     VirtualArgumentCommon.completeFile(shell, value, previousArguments, filter)
 
 }
@@ -165,7 +168,7 @@ case class FileArgument(override val name: String, override val required: Boolea
     }
   }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] =
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[Completion] =
     VirtualArgumentCommon.completeFile(shell, value, previousArguments, filter)
 
 }
@@ -179,7 +182,7 @@ case class IntArgument(override val name: String, override val required: Boolean
       case _: NumberFormatException => Left(s"$name: invalid number.")
     }
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = Seq.empty
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[Completion] = Seq.empty
 
 }
 
@@ -187,7 +190,7 @@ case class StringArgument(override val name: String, override val required: Bool
   override def parse(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Either[String, String] =
     Right(value)
 
-  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[String] = Seq.empty
+  override def complete(shell: VirtualShell, value: String, previousArguments: Seq[Any]): Seq[Completion] = Seq.empty
 
 }
 
@@ -212,7 +215,7 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
     }
   }
 
-  def complete(shell: VirtualShell, line: String): Seq[String] = {
+  def complete(shell: VirtualShell, line: String): Seq[Completion] = {
     val parsedLine = new CommandLine(line)
 
     val proposals =

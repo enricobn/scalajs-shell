@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.{VirtualCommand, VirtualCommandOperations, VirtualShellProfile}
+import org.enricobn.shell.{Completion, VirtualCommand, VirtualCommandOperations, VirtualShellProfile}
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
@@ -50,7 +50,7 @@ class MkdirCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.command.completion("mkdir /", f.shell)
 
-    assert(result.toList == List("/bin/", "/etc/", "/home/"))
+    assert(result.toList == List(Completion("/bin/", "bin"), Completion("/etc/", "etc"), Completion("/home/", "home")))
   }
 
   "completion of 'mkdir /home/dummy'" should "return an empty list" in {

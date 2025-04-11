@@ -1,6 +1,6 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell.VirtualCommand
+import org.enricobn.shell.{Completion, VirtualCommand}
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
@@ -44,7 +44,7 @@ class CatCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.command.completion("cat f", f.shell)
 
-    assert(result == List("file"))
+    assert(result == List(Completion("file", "file")))
   }
 
   "completion of 'cat f'" should "return two element" in {
@@ -57,7 +57,7 @@ class CatCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.command.completion("cat f", f.shell)
 
-    assert(result == List("file", "file1"))
+    assert(result == List(Completion("file", "file"), Completion("file1", "file1")))
   }
 
 }

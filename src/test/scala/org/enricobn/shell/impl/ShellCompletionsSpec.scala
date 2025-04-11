@@ -4,7 +4,6 @@ import org.enricobn.shell._
 import org.enricobn.vfs._
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
-import org.scalamock.matchers.ArgThat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -77,7 +76,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
     val result = f.completions.complete("c", f.shell)
     result match {
-      case Proposals(props) => assert(props == Seq("cat", "cd"))
+      case Proposals(props) => assert(props == Seq(Completion("cat", "cat"), Completion("cd", "cd")))
       case _ => fail(result.toString)
     }
   }
@@ -86,14 +85,14 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     val f = fixture
     val catCommand = stub[VirtualCommand]
 
-    (catCommand.completion _).when("cat ", *).returns(Seq("hello", "world"))
+    (catCommand.completion _).when("cat ", *).returns(Seq(Completion("hello", "hello"), Completion("world", "world")))
     val cat = stubCommandFile(f.shell, "cat", catCommand)
 
     stubPath(f.context, Set(cat))
 
     val result = f.completions.complete("cat ", f.shell)
     result match {
-      case Proposals(props) => assert(props == Seq("hello", "world"))
+      case Proposals(props) => assert(props == Seq(Completion("hello", "hello"), Completion("world", "world")))
       case _ => fail(result.toString)
     }
   }
@@ -101,6 +100,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
   private def stubCommandFile(shell: VirtualShell, name: String, virtualCommand: VirtualCommand = stub[VirtualCommand]) = {
     val commandFile = stub[VirtualFile]
     (commandFile.name _).when().returns(name)
+    (commandFile.parent _).when().returns(Some(fs.usrBin))
 
     val permission = stub[VirtualPermission]
     (permission.execute _).when().returns(true)
@@ -113,7 +113,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     commandFile
   }
 
-  private def sameRef[T](ref: T) : ArgThat[T] = new ArgThat[T](v => v.asInstanceOf[AnyRef] eq ref.asInstanceOf[AnyRef])
+  //private def sameRef[T](ref: T) : ArgThat[T] = new ArgThat[T](v => v.asInstanceOf[AnyRef] eq ref.asInstanceOf[AnyRef])
 
   private def stubPath(context: VirtualShellContext, files: Set[VirtualFile]): Unit = {
     val bin = stub[VirtualFolder]

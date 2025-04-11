@@ -15,18 +15,18 @@ resolvers ++= Seq(
 )
 
 lazy val root = (project in file("."))
-    .settings(
-      organization := "org.enricobn",
-      name := project_name,
-      version := project_version,
-      artifactPath in (Compile, fullOptJS) := baseDirectory.value / (artifactPrefix + ".min.js"),
-      artifactPath in (Compile, packageJSDependencies) := baseDirectory.value / (artifactPrefix + "-jsdeps.js"),
-      artifactPath in (Compile, packageMinifiedJSDependencies) := baseDirectory.value / (artifactPrefix + "-jsdeps.min.js"),
-      libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.1",
-      libraryDependencies += "org.enricobn" %%% "scalajs-vfs" % "1.0.0-SNAPSHOT" changing(),
-      libraryDependencies += "org.enricobn" %%% "scalajs-terminal" % "1.0.0" changing(),
-      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.3.0" % "test"
-    )
-    .enablePlugins(ScalaJSPlugin)
+  .settings(
+    organization := "org.enricobn",
+    name := project_name,
+    version := project_version,
+    artifactPath in(Compile, fullOptJS) := baseDirectory.value / (artifactPrefix + ".min.js"),
+    artifactPath in(Compile, packageJSDependencies) := baseDirectory.value / (artifactPrefix + "-jsdeps.js"),
+    artifactPath in(Compile, packageMinifiedJSDependencies) := baseDirectory.value / (artifactPrefix + "-jsdeps.min.js"),
+    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.1",
+    libraryDependencies += "org.enricobn" %%% "scalajs-vfs" % "1.0.0-SNAPSHOT" changing(),
+    libraryDependencies += "org.enricobn" %%% "scalajs-terminal" % "1.0.0" changing(),
+    libraryDependencies += "org.scalamock" %%% "scalamock" % "4.1.0" % Test,
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.0.4" % Test
+  )
+  .enablePlugins(ScalaJSPlugin)
     

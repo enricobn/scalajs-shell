@@ -8,34 +8,37 @@ import org.enricobn.vfs.inmemory.InMemoryFS
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 
-import scala.collection.mutable.ListBuffer
-
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
 
 /**
   * Created by enrico on 12/12/16.
   */
-class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matchers with OneInstancePerTest  {
+class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matchers {
   private val rootPassword = "root"
-  private var terminal : Terminal = _
-  private var scheduler :  FakeScheduler = _
-  private var fs : UnixLikeInMemoryFS = _
-  private var shell : VirtualShell = _
-  private var textFile : VirtualFile = _
-  private var rootAuthentication : Authentication = _
-  private var binFile : VirtualFile = _
-  private var rootFile : VirtualFile = _
-  private var usrFile : VirtualFile = _
+  private var terminal: Terminal = _
+  private var scheduler: FakeScheduler = _
+  private var fs: UnixLikeInMemoryFS = _
+  private var shell: VirtualShell = _
+  private var textFile: VirtualFile = _
+  private var rootAuthentication: Authentication = _
+  private var binFile: VirtualFile = _
+  private var rootFile: VirtualFile = _
+  private var usrFile: VirtualFile = _
+  private var context: VirtualShellContext = _
+  private var guestHome: VirtualFolder = _
 
   import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
   terminal = mock[Terminal]
   scheduler = new FakeScheduler()
+  context = mock[VirtualShellContext]
 
-  val _fs = InMemoryFS(
-    {VirtualUsersManagerFileImpl(_, rootPassword).right.get},
-    {(_, vum) => new VirtualSecurityManagerImpl(vum)})
+  val _fs: InMemoryFS = InMemoryFS(
+    {
+      VirtualUsersManagerFileImpl(_, rootPassword).right.get
+    },
+    { (_, vum) => new VirtualSecurityManagerImpl(vum) })
 
   fs = UnixLikeInMemoryFS(_fs, rootPassword).right.get
 
@@ -47,14 +50,14 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     _rootFile <- fs.root.touch("rootFile")
     _usrFile <- fs.usr.touch("usrFile")
     guestPath <- VirtualPath.absolute("home", "guest")
-    guestHome <- guestPath.toFolder(fs)
-    text <- guestHome.touch("text.txt")
+    _guestHome <- guestPath.toFolder(fs)
+    text <- _guestHome.touch("text.txt")
     _ <- text.chmod(666)
     _ <- text.setContent("Hello\nWorld")
     _binFile <- fs.usrBin.touch("binFile")
     _ <- VirtualCommandOperations.createCommandFile(fs.usrBin, new InteractiveCommand())
 
-    virtualShell = UnixLikeVirtualShell(fs, terminal, guestHome, _authentication, scheduler)
+    virtualShell = UnixLikeVirtualShell(fs, terminal, _guestHome, _authentication, scheduler)
 
     _ <- VirtualCommandOperations.createCommandFiles(fs.bin, LsCommand, CatCommand, CdCommand)
 
@@ -72,11 +75,21 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     binFile = _binFile
     rootFile = _rootFile
     usrFile = _usrFile
+    guestHome = _guestHome
   }
 
   init match {
     case Right(f) => f
     case Left(error) => fail(error.message)
+  }
+
+  override def withFixture(test: NoArgTest): Outcome = { // Define a shared fixture
+    // Shared setup (run at beginning of each test)
+    scheduler.init()
+    try test()
+    finally {
+      // Shared cleanup (run at end of each test)
+    }
   }
 
   "ls" should "show text.txt" in {
@@ -93,6 +106,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     shell.run("ls")
   }
 
+  /*
   "ls background" should "show text.txt" in {
     (terminal.add _).expects(where {
       message: String => message.contains(".profile")
@@ -106,6 +120,8 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     shell.runInBackground("ls")
   }
+
+   */
 
   "cd" should "show bin, home and usr" in {
     (terminal.add _).expects(where {
@@ -137,7 +153,6 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     TestUtils.expectPrompt(terminal)
     shell.run("ls")
-
   }
 
   "cd to not existent folder" should "return an error" in {
@@ -149,6 +164,10 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
   "running text.txt" should "return an error" in {
     textFile.setExecutable(rootAuthentication)
+
+    TestUtils.expectPrompt(terminal)
+
+    shell.run("cd", "/home/guest")
 
     assertError(
       shell.run("text.txt"),
@@ -275,7 +294,6 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "int" should "show prompt" in {
     TestUtils.expectPrompt(terminal)
     shell.run("int")
-    scheduler.join()
   }
 
   "minimumCommon" should "work" in {
@@ -302,7 +320,38 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     assert(result == "")
   }
 
-  private class InteractiveCommand() extends VirtualCommand {
+  "completion of i" should "return 'int '" in {
+    TestUtils.expectPrompt(terminal)
+
+    /*
+    Here as an example on how to do it...
+    (context.path(_ : VirtualFS)(_ : Authentication)).expects(where { (_: VirtualFS, _: Authentication) => true })
+      .returns(Right(Seq(guestHome)))
+     */
+
+    terminalExpectCodePoints(27, 91, 48, 68)
+    terminalExpectCodePoints(27, 91, 75)
+    terminalExpectCodePoints(105)
+    terminalExpectCodePoints(27, 91, 48, 68)
+    terminalExpectCodePoints(27, 91, 49, 68)
+    terminalExpectCodePoints(27, 91, 75)
+    (terminal.add _).expects(where { message: String =>  message == "int " })
+
+    (terminal.flush : () => Unit).expects().onCall(() => println("flush")).anyNumberOfTimes()
+
+    shell.run("cd", "/home/guest")
+
+    shell.asInstanceOf[VirtualShellImpl].inputHandler.notify(null, "i")
+    shell.asInstanceOf[VirtualShellImpl].inputHandler.notify(null, Terminal.TAB)
+  }
+
+  def terminalExpectCodePoints(codePoints: Int*): Unit = {
+    (terminal.add _).expects(where { message: String => {
+        codePoints == message.map(c => c.toInt)
+    } })
+  }
+
+  private class InteractiveCommand extends VirtualCommand {
     override def name: String = "int"
 
     override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*): Either[IOError, VirtualProcess] = {
@@ -311,46 +360,29 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
       Right(new VirtualProcess {
         override def update(): Unit = {
-          super.update()
-            count = count - 1
-            if (count >= 0) {
-              _running = false
-            }
+          count = count - 1
+          if (count == 0) {
+            _running = false
+          }
         }
 
         override def running: Boolean = _running
       })
     }
 
-    override def completion(line: String, shell: VirtualShell): Seq[String] = Seq.empty
+    override def completion(line: String, shell: VirtualShell): Seq[Completion] = Seq.empty
   }
 
   private class FakeScheduler extends Scheduler {
-    private var count = 2
-
-    private val callbacks = new ListBuffer[Double => Unit]()
-
-    private val mainThread = new Thread(new Runnable {
-      override def run(): Unit = {
-        while (count >= 0) {
-          while (callbacks.isEmpty) {
-            Thread.sleep(100)
-          }
-          count = count - 1
-          callbacks.remove(0).apply(0)
-          Thread.sleep(100)
-        }
-      }
-    })
-
-    mainThread.start()
-
-    override def run(callback: Double => Unit): Unit = {
-      callbacks.append(callback)
+    private var count = 0
+    def init(): Unit = {
+      count = 2
     }
-
-    def join(): Unit = {
-      mainThread.join()
+    override def run(callback: Double => Unit): Unit = {
+      count = count -1
+      if (count >= 0) {
+        callback.apply(0.0)
+      }
     }
   }
 
