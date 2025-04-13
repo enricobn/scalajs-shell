@@ -1,12 +1,13 @@
 package org.enricobn.shell.impl
 
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 /**
   * Created by enrico on 12/21/16.
   */
-class CommandLineSpec extends FlatSpec with MockFactory with Matchers {
+class CommandLineSpec extends AnyFlatSpec with MockFactory with Matchers {
 
   "command without space" should "be an incomplete command" in {
     val sut = new CommandLine("cd")

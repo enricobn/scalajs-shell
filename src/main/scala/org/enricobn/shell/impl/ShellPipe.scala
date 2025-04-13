@@ -2,40 +2,32 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.ShellInput.ShellInputDescriptor
 import org.enricobn.shell.{ShellInput, ShellOutput}
-
-import scala.collection.mutable
+import org.enricobn.vfs.Listeners
 
 /**
   * Created by enrico on 12/13/16.
   */
 object ShellPipe {
-  private[ShellPipe] class StringPublisher extends mutable.Publisher[String] {
-    override type Pub = mutable.Publisher[String]
-
-    override def publish(event: String) {
-      super.publish(event)
-    }
+  private[ShellPipe] class StringPublisher extends Listeners[String] {
   }
 }
 
 class ShellPipe extends ShellInput with ShellOutput {
-  import ShellPipe._
+  import ShellPipe.*
   val stringPublisher = new StringPublisher
 
   def subscribe(fun: Function[String,Unit]) : ShellInputDescriptor = {
-    stringPublisher.subscribe(new StringPublisher#Sub {
-      override def notify(pub: mutable.Publisher[String], event: String) {
+    stringPublisher.subscribe(event =>new StringPublisher {
         fun(event)
-      }
     })
     ShellInput.newShellInputDescriptor()
   }
 
-  def write(s: String) {
+  def write(s: String): Unit = {
     stringPublisher.publish(s)
   }
 
-  override def flush() {
+  override def flush(): Unit = {
 
   }
 

@@ -1,14 +1,15 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualShellProfileMap
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
 
-class CascadeShellProfileSpec extends FlatSpec with MockFactory with Matchers {
+class CascadeShellProfileSpec extends AnyFlatSpec with MockFactory with Matchers {
 
-  def fixture(profiles: Map[String, String]*) = CascadeShellProfile(profiles.map(VirtualShellProfileMap))
+  def fixture(profiles: Map[String, String]*): CascadeShellProfile = CascadeShellProfile(profiles.map(VirtualShellProfileMap.apply))
 
   "PATH" should "be resolved from parent" in {
     val m1 = Map("PATH" -> "/bin:/usr/bin" )

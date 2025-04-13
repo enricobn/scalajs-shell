@@ -4,25 +4,25 @@ import org.enricobn.shell.impl.{CatCommand, VirtualShellContextImpl, VirtualShel
 import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
-import org.enricobn.vfs.utils.Utils.RightBiasedEither
 import org.enricobn.vfs.{Authentication, IOError, VirtualFolder}
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.reflectiveCalls
 
-class CompletionPathSpec extends FlatSpec with MockFactory with Matchers {
+class CompletionPathSpec extends AnyFlatSpec with MockFactory with Matchers {
 
   private def fixture = {
     val fs = InMemoryFS(
-      {VirtualUsersManagerFileImpl(_, "root").right.get},
+      {VirtualUsersManagerFileImpl(_, "root").toOption.get},
       {(_, vum) => new VirtualSecurityManagerImpl(vum)})
 
-    implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
+    implicit val authentication: Authentication = fs.vum.logRoot("root").toOption.get
 
-    val _ = fs.root.mkdir("bin").right.get
-    val home = fs.root.findFolder("home").right.get.get
-    val _guest = home.mkdir("guest").right.get
+    val _ = fs.root.mkdir("bin").toOption.get
+    val home = fs.root.findFolder("home").toOption.get.get
+    val _guest = home.mkdir("guest").toOption.get
 
     new {
       val command: VirtualCommand = CatCommand
@@ -55,7 +55,7 @@ class CompletionPathSpec extends FlatSpec with MockFactory with Matchers {
     val command: VirtualCommand
 
     val guestFolder: VirtualFolder
-  }) = {
+  }): Unit = {
     implicit val authentication: Authentication = f.shell.authentication
 
     val errorOrUnit: Either[IOError, Unit] = for {

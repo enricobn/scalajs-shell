@@ -2,31 +2,32 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.Completion
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs._
+import org.enricobn.vfs.*
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.reflectiveCalls
 
-class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers {
+class VirtualCommandArgumentSpec extends AnyFlatSpec with MockFactory with Matchers {
 
   private def fixture = {
     val rootPassword = "rootPassword"
     val _fs = InMemoryFS(
-      {VirtualUsersManagerFileImpl(_, rootPassword).right.get},
+      {VirtualUsersManagerFileImpl(_, rootPassword).toOption.get},
       {(_, vum) => new VirtualSecurityManagerImpl(vum)})
-    implicit val authentication: Authentication = _fs.vum.logRoot(rootPassword).right.get
+    implicit val authentication: Authentication = _fs.vum.logRoot(rootPassword).toOption.get
 
     new {
       val fs: InMemoryFS = _fs
       val usersManager: VirtualUsersManager = _fs.vum
-      val usr : VirtualFolder = _fs.root.mkdir("usr").right.get
-      val bin : VirtualFolder = usr.mkdir("bin").right.get
-      val rootFile : VirtualFile = _fs.root.touch("rootFile").right.get
-      val usrFile : VirtualFile = usr.touch("usrFile").right.get
-      val binFile : VirtualFile = bin.touch("binFile").right.get
+      val usr : VirtualFolder = _fs.root.mkdir("usr").toOption.get
+      val bin : VirtualFolder = usr.mkdir("bin").toOption.get
+      val rootFile : VirtualFile = _fs.root.touch("rootFile").toOption.get
+      val usrFile : VirtualFile = usr.touch("usrFile").toOption.get
+      val binFile : VirtualFile = bin.touch("binFile").toOption.get
       val shell = new VirtualShellImpl(fs, stub[Terminal], _fs.vum, _fs.vsm, new VirtualShellContextImpl(), bin, authentication)
     }
   }
@@ -47,7 +48,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     val sut = FileArgument("file", required = true)
     val parsedArguments = sut.parse(f.shell, "/rootFile", Seq.empty)
 
-    assert(parsedArguments.right.get == f.rootFile)
+    assert(parsedArguments.toOption.get == f.rootFile)
   }
 
   "parse of FolderArgument" should "be fine" in {
@@ -56,7 +57,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
     val sut = FolderArgument("folder", required = true)
     val parsedArguments = sut.parse(f.shell, "/", Seq.empty)
 
-    assert(parsedArguments.right.get == f.fs.root)
+    assert(parsedArguments.toOption.get == f.fs.root)
   }
 
   "completion of not existent argument" should "return an empty list" in {
@@ -78,7 +79,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
 
     assert(parsedArguments.isLeft)
 
-    assert(parsedArguments.left.get == "usage: cd file ")
+    assert(parsedArguments == Left("usage: cd file "))
   }
 
   "parse without optional arguments" should "be fine" in {
@@ -88,7 +89,7 @@ class VirtualCommandArgumentSpec extends FlatSpec with MockFactory with Matchers
 
     val parsedArguments = sut.parse(f.shell, "cd")
 
-    assert(parsedArguments.right.get.isEmpty)
+    assert(parsedArguments.toOption.get.isEmpty)
   }
 
   "parse with optional arguments before required" should "throw an exception" in {

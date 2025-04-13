@@ -2,7 +2,7 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.{Completion, VirtualCommandOperations, VirtualShellContext}
 import org.enricobn.vfs.Authentication
-import org.enricobn.vfs.IOError._
+import org.enricobn.vfs.IOError.*
 
 /**
   * Created by enrico on 12/15/16.
@@ -28,23 +28,23 @@ class ShellCompletions(context: VirtualShellContext) {
 
     val proposals =
       if (parsedLine.incompleteCommand) {
-        context.path(shell.fs).right.get
-          .flatMap(_.files.right.get)
-          .filter(_.getCurrentUserPermission.right.exists(_.execute))
+        context.path(shell.fs).toOption.get
+          .flatMap(_.files.toOption.get)
+          .filter(_.getCurrentUserPermission.exists(_.execute))
           .filter(_.name.startsWith(parsedLine.commandName))
           .map(file => Completion(file.name, file.name)).toList
       } else {
         val fromCommand = for {
-          file <- shell.findCommand(parsedLine.commandName, shell.currentFolder).right
+          file <- shell.findCommand(parsedLine.commandName, shell.currentFolder)
           command <- file match {
-            case Some(f) => VirtualCommandOperations.getCommand(f).right
-            case _ => s"Cannot find command: ${parsedLine.commandName}".ioErrorE.right
+            case Some(f) => VirtualCommandOperations.getCommand(f)
+            case _ => s"Cannot find command: ${parsedLine.commandName}".ioErrorE
           }
         } yield command.completion(line, shell)
 
         // TODO handle errors? Probably is not necessary to return an Either, if an error occurs during
         // completion, simply print the error to the console and return NoProposals.
-        fromCommand.right.toOption.getOrElse(Seq.empty)
+        fromCommand.toOption.getOrElse(Seq.empty)
       }
 
     if (proposals.isEmpty) {

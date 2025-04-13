@@ -1,17 +1,17 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.{ShellInput, ShellOutput, VirtualProcess}
-import org.enricobn.terminal.Terminal._
-import org.enricobn.vfs.IOError._
-import org.enricobn.vfs._
+import org.enricobn.terminal.Terminal.*
+import org.enricobn.vfs.*
+import org.enricobn.vfs.IOError.*
 
-import scala.scalajs.js.annotation.JSExport
+import scala.scalajs.js.annotation.JSExportTopLevel
 
 /**
   * Created by enrico on 12/4/16.
   */
 
-@JSExport(name = "LsCommand")
+@JSExportTopLevel(name = "LsCommand")
 object LsCommand extends VirtualCommandAbstract("ls", FolderArgument("folder", required = false)) {
 
   override def runParsed(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: Seq[Any])
@@ -27,8 +27,8 @@ object LsCommand extends VirtualCommandAbstract("ls", FolderArgument("folder", r
     errorOrFolder match {
       case Left(error) => Left(error)
       case Right(folder) =>
-        folder.folders.right.get.foreach(f => print(shellOutput, f))
-        folder.files.right.get.foreach(file => print(shellOutput, file))
+        folder.folders.toOption.get.foreach(f => print(shellOutput, f))
+        folder.files.toOption.get.foreach(file => print(shellOutput, file))
         Right(new VirtualProcess())
     }
 
@@ -38,7 +38,7 @@ object LsCommand extends VirtualCommandAbstract("ls", FolderArgument("folder", r
     LsCommand.toString(node.permissions)
   }
 
-  private def print(out: ShellOutput, node: VirtualNode) {
+  private def print(out: ShellOutput, node: VirtualNode): Unit = {
     var s = getAttributes(node) + "  " + "%1$-10s".format(node.owner) + "  " + "%1$-10s".format(node.group) + "  "
 
     if (node.isInstanceOf[VirtualFolder]) {

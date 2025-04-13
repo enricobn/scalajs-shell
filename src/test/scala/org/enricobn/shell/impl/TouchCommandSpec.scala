@@ -5,8 +5,9 @@ import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.enricobn.vfs.{Authentication, IOError, VirtualPath}
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
@@ -14,15 +15,15 @@ import scala.language.reflectiveCalls
 /**
   * Created by enrico on 12/16/16.
   */
-class TouchCommandSpec extends FlatSpec with MockFactory with Matchers {
+class TouchCommandSpec extends AnyFlatSpec with MockFactory with Matchers {
   private def fixture = {
     val fs = InMemoryFS(
-      {VirtualUsersManagerFileImpl(_, "root").right.get},
+      {VirtualUsersManagerFileImpl(_, "root").toOption.get},
       {(_, vum) => new VirtualSecurityManagerImpl(vum)})
 
-    implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
+    implicit val authentication: Authentication = fs.vum.logRoot("root").toOption.get
 
-    val bin = fs.root.mkdir("bin").right.get
+    val bin = fs.root.mkdir("bin").toOption.get
 
     val context = new VirtualShellContextImpl()
     context.setGlobalProfile(new VirtualShellProfile() {
@@ -76,7 +77,7 @@ class TouchCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     assert(result.isRight, result.toString)
 
-    val folderE = VirtualPath.absolute("home", "guest", "dummy").right
+    val folderE = VirtualPath.absolute("home", "guest", "dummy")
       .flatMap(_.toFile(f.shell.fs)(f.shell.authentication))
 
     assert(folderE.isRight)
@@ -89,7 +90,7 @@ class TouchCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     assert(result.isRight, result.toString)
 
-    val folderE = VirtualPath.absolute("home", "guest", "dummy").right
+    val folderE = VirtualPath.absolute("home", "guest", "dummy")
       .flatMap(_.toFile(f.shell.fs)(f.shell.authentication))
 
     assert(folderE.isRight)
@@ -98,8 +99,8 @@ class TouchCommandSpec extends FlatSpec with MockFactory with Matchers {
   "touch dummy in /home/guest" should "work" in {
     val f = fixture
 
-    val guestFolder = VirtualPath.absolute("home", "guest").right
-      .flatMap(_.toFolder(f.shell.fs)(f.shell.authentication)).right.get
+    val guestFolder = VirtualPath.absolute("home", "guest")
+      .flatMap(_.toFolder(f.shell.fs)(f.shell.authentication)).toOption.get
 
     f.shell.currentFolder = guestFolder
 
@@ -107,7 +108,7 @@ class TouchCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     assert(result.isRight, result.toString)
 
-    val folderE = VirtualPath.absolute("home", "guest", "dummy").right
+    val folderE = VirtualPath.absolute("home", "guest", "dummy")
       .flatMap(_.toFile(f.shell.fs)(f.shell.authentication))
 
     assert(folderE.isRight)

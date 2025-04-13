@@ -1,8 +1,9 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
@@ -10,7 +11,7 @@ import scala.language.reflectiveCalls
 /**
   * Created by enrico on 12/16/16.
   */
-class TestShellFactorySpec extends FlatSpec with MockFactory with Matchers {
+class TestShellFactorySpec extends AnyFlatSpec with MockFactory with Matchers {
 
   "create" should "be fine" in {
     TestShellFactory.create(stub[Terminal])
@@ -18,7 +19,7 @@ class TestShellFactorySpec extends FlatSpec with MockFactory with Matchers {
 
   "context" should "contain /bin /usr/bin" in {
     val shell = TestShellFactory.create(stub[Terminal])
-    assert(shell.context.path(shell.fs)(shell.authentication).right.get.map(_.path) == List("/bin", "/usr/bin"))
+    assert(shell.context.path(shell.fs)(shell.authentication).toOption.get.map(_.path) == List("/bin", "/usr/bin"))
   }
 
   "ls" should "be fine" in {
@@ -26,11 +27,11 @@ class TestShellFactorySpec extends FlatSpec with MockFactory with Matchers {
     val shell = TestShellFactory.create(terminal)
 
     (terminal.add _).expects(where {
-      message: String => message.contains(".profile")
+      (message: String) => message.contains(".profile")
     })
 
     (terminal.add _).expects(where {
-      message: String => message.contains("text.txt")
+      (message: String) => message.contains("text.txt")
     })
 
     (terminal.removeOnInputs _).expects().anyNumberOfTimes()
@@ -39,10 +40,18 @@ class TestShellFactorySpec extends FlatSpec with MockFactory with Matchers {
 
     (terminal.onInput _).expects(*).anyNumberOfTimes()
 
-    TestUtils.expectPrompt(terminal)
+    expectPrompt(terminal)
 
     assert(shell.run("ls").isRight)
 
+  }
+
+  private def expectPrompt(terminal : Terminal,  prompt : Boolean = true): Unit = {
+    if (prompt) {
+      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) })
+    } else {
+      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) }).never()
+    }
   }
 
 }

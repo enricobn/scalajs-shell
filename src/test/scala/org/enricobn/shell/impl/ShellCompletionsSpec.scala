@@ -1,11 +1,12 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell._
-import org.enricobn.vfs._
+import org.enricobn.shell.*
+import org.enricobn.vfs.*
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
@@ -13,19 +14,19 @@ import scala.language.reflectiveCalls
 /**
   * Created by enrico on 12/15/16.
   */
-class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
+class ShellCompletionsSpec extends AnyFlatSpec with MockFactory with Matchers {
   private val _fs = InMemoryFS(
-    {VirtualUsersManagerFileImpl(_, "root").right.get},
+    {VirtualUsersManagerFileImpl(_, "root").toOption.get},
     {(_, vum) => new VirtualSecurityManagerImpl(vum)})
-  private val fs = UnixLikeInMemoryFS(_fs, "root").right.get
+  private val fs = UnixLikeInMemoryFS(_fs, "root").toOption.get
 
-  private implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
+  private implicit val authentication: Authentication = fs.vum.logRoot("root").toOption.get
 
-  def fixture = {
+  def fixture: Object {val context: VirtualShellContext; val completions: ShellCompletions; val shell: VirtualShell} = {
     new {
       val context: VirtualShellContext = stub[VirtualShellContext]
       val completions = new ShellCompletions(context)
-      val shell = stub[VirtualShell]
+      val shell: VirtualShell = stub[VirtualShell]
     }
   }
 
@@ -44,7 +45,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     val cat = stubCommandFile(f.shell, "cat")
     val ls = stubCommandFile(f.shell, "ls")
 
-    stubPath(f.context, Set(cat, ls))
+    stubPath(f.context, Seq(cat, ls))
 
     val result = f.completions.complete("c", f.shell)
 
@@ -58,7 +59,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     val f = fixture
     val ls = stubCommandFile(f.shell, "ls")
 
-    stubPath(f.context, Set(ls))
+    stubPath(f.context, Seq(ls))
 
     val result = f.completions.complete("c", f.shell)
     result match {
@@ -72,7 +73,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     val cat = stubCommandFile(f.shell, "cat")
     val ls = stubCommandFile(f.shell, "cd")
 
-    stubPath(f.context, Set(cat, ls))
+    stubPath(f.context, Seq(cat, ls))
 
     val result = f.completions.complete("c", f.shell)
     result match {
@@ -88,7 +89,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
     (catCommand.completion _).when("cat ", *).returns(Seq(Completion("hello", "hello"), Completion("world", "world")))
     val cat = stubCommandFile(f.shell, "cat", catCommand)
 
-    stubPath(f.context, Set(cat))
+    stubPath(f.context, Seq(cat))
 
     val result = f.completions.complete("cat ", f.shell)
     result match {
@@ -99,11 +100,11 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
   private def stubCommandFile(shell: VirtualShell, name: String, virtualCommand: VirtualCommand = stub[VirtualCommand]) = {
     val commandFile = stub[VirtualFile]
-    (commandFile.name _).when().returns(name)
-    (commandFile.parent _).when().returns(Some(fs.usrBin))
+    (() => commandFile.name).when().returns(name)
+    (() => commandFile.parent).when().returns(Some(fs.usrBin))
 
     val permission = stub[VirtualPermission]
-    (permission.execute _).when().returns(true)
+    (() => permission.execute).when().returns(true)
 
     (commandFile.getCurrentUserPermission(_ : Authentication)).when(*).returns(Right(permission))
 
@@ -115,7 +116,7 @@ class ShellCompletionsSpec extends FlatSpec with MockFactory with Matchers {
 
   //private def sameRef[T](ref: T) : ArgThat[T] = new ArgThat[T](v => v.asInstanceOf[AnyRef] eq ref.asInstanceOf[AnyRef])
 
-  private def stubPath(context: VirtualShellContext, files: Set[VirtualFile]): Unit = {
+  private def stubPath(context: VirtualShellContext, files: Seq[VirtualFile]): Unit = {
     val bin = stub[VirtualFolder]
     (bin.files(_ : Authentication)).when(*).returns(Right(files))
     (context.path(_ : VirtualFS)(_ : Authentication)).when(*, *).returns(Right(Seq(bin)))

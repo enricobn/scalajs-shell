@@ -6,7 +6,7 @@ Install locally
 ================
 to install this library to local repository:
 
-`sbt publish-local` 
+`sbt publishLocal` 
 
 
 Thanks

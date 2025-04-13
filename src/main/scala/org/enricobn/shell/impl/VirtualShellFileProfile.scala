@@ -1,8 +1,7 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualShellProfile
-import org.enricobn.vfs.utils.Utils.RightBiasedEither
-import org.enricobn.vfs._
+import org.enricobn.vfs.*
 
 class VirtualShellUserProfile(private val shell: VirtualShell) extends VirtualShellFileProfile(() => shell.authentication) {
 
@@ -10,12 +9,12 @@ class VirtualShellUserProfile(private val shell: VirtualShell) extends VirtualSh
     implicit val authentication: Authentication = shell.authentication
 
     for {
-      homeFolder <- shell.homeFolder.right
-      alreadyPresent <- homeFolder.findFile(".profile").right
+      homeFolder <- shell.homeFolder
+      alreadyPresent <- homeFolder.findFile(".profile")
       file <- if (alreadyPresent.isDefined) {
-        Right(alreadyPresent.get).right
+        Right(alreadyPresent.get)
       } else {
-        homeFolder.createFile(".profile", StringMap()).right
+        homeFolder.createFile(".profile", StringMap())
       }
     } yield file
   }
@@ -27,12 +26,12 @@ class VirtualShellGlobalProfile(private val fs: VirtualFS, private val authentic
   def file: Either[IOError, VirtualFile] = {
     for {
       etcPath <- VirtualPath.of("etc")
-      etcFolder <- etcPath.toFolder(fs.root)(authentication()).right
-      alreadyPresent <- etcFolder.findFile("profile")(authentication()).right
+      etcFolder <- etcPath.toFolder(fs.root)(authentication())
+      alreadyPresent <- etcFolder.findFile("profile")(authentication())
       file <- if (alreadyPresent.isDefined) {
-        Right(alreadyPresent.get).right
+        Right(alreadyPresent.get)
       } else {
-        etcFolder.createFile("profile", StringMap())(authentication()).right
+        etcFolder.createFile("profile", StringMap())(authentication())
       }
     } yield file
   }
@@ -51,20 +50,20 @@ abstract class VirtualShellFileProfile(authentication: () => Authentication) ext
 
   def content: Either[IOError, StringMap] =
     for {
-      f <- file.right
-      c <- f.contentAs(classOf[StringMap])(authentication()).right
+      f <- file
+      c <- f.contentAs(classOf[StringMap])(authentication())
     } yield c
 
   def add(key: String, value: String): Either[IOError, Unit] =
     for {
-      c <- content.right
-      f <- file.right
-      result <- f.setContent(c(_ + (key -> value)))(authentication()).right
+      c <- content
+      f <- file
+      result <- f.setContent(c(_ + (key -> value)))(authentication())
     } yield result
 
   def apply(key: String): Either[IOError, Option[String]] =
     for {
-      c <- content.right
+      c <- content
     } yield c.value.get(key)
 
 }

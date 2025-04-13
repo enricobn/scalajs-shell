@@ -1,10 +1,11 @@
 package org.enricobn.shell.impl
 
 import org.enricobn.terminal.Terminal
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
-class EditLineSpec extends FlatSpec with MockFactory with Matchers {
+class EditLineSpec extends AnyFlatSpec with MockFactory with Matchers {
 
   "backspace" should "delete from current cursor position" in {
     val term = stub[Terminal]

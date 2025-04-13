@@ -1,21 +1,21 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.vfs._
+import org.enricobn.vfs.*
 import org.enricobn.vfs.inmemory.InMemoryFS
 
 object UnixLikeInMemoryFS {
 
-  def apply(fs: InMemoryFS, rootPassword: String) = {
+  def apply(fs: InMemoryFS, rootPassword: String): Either[IOError, UnixLikeInMemoryFS] = {
     for {
-      authentication <- fs.vum.logUser(VirtualUsersManager.ROOT, rootPassword).right
-      bin <- mkdir(fs.root, "bin")(authentication).right
-      usr <- mkdir(fs.root, "usr")(authentication).right
-      var_ <- mkdir(fs.root, "var")(authentication).right
-      varLog <- mkdir(var_, "log")(authentication).right
-      usrBin <- mkdir(usr, "bin")(authentication).right
-      etc <- mkdir(fs.root, "etc")(authentication).right
-      home <- mkdir(fs.root, "home")(authentication).right
-      _ <- etc.createFile("profile", StringMap(Map("PATH" -> "/bin:/usr/bin")))(authentication).right
+      authentication <- fs.vum.logUser(VirtualUsersManager.ROOT, rootPassword)
+      bin <- mkdir(fs.root, "bin")(authentication)
+      usr <- mkdir(fs.root, "usr")(authentication)
+      var_ <- mkdir(fs.root, "var")(authentication)
+      varLog <- mkdir(var_, "log")(authentication)
+      usrBin <- mkdir(usr, "bin")(authentication)
+      etc <- mkdir(fs.root, "etc")(authentication)
+      home <- mkdir(fs.root, "home")(authentication)
+      _ <- etc.createFile("profile", StringMap(Map("PATH" -> "/bin:/usr/bin")))(authentication)
     } yield new UnixLikeInMemoryFS(fs, bin, usr, var_, varLog, usrBin, etc, home)
   }
 

@@ -1,25 +1,25 @@
 package org.enricobn.shell.impl
 
+import org.enricobn.shell.*
 import org.enricobn.shell.ShellInput.ShellInputDescriptor
-import org.enricobn.shell._
 import org.enricobn.shell.impl.RunStatus.Pid
-import org.enricobn.terminal.Terminal._
-import org.enricobn.terminal.{StringPub, Terminal, TerminalOperations}
-import org.enricobn.vfs.IOError._
-import org.enricobn.vfs._
+import org.enricobn.terminal.Terminal.*
+import org.enricobn.terminal.{Terminal, TerminalOperations}
+import org.enricobn.vfs.*
+import org.enricobn.vfs.IOError.*
 import org.scalajs.dom
 
-import java.util.UUID
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
-import scala.scalajs.js.annotation.{JSExport, JSExportAll}
+import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
+import scala.util.Random.nextInt
 
 private object RunStatus {
 
   type Pid = String
 
-  def newPid(): Pid = UUID.randomUUID().toString
+  def newPid(): Pid = nextInt().toString
 
 }
 
@@ -122,7 +122,7 @@ object VirtualShellImpl {
   }
 }
 
-@JSExport(name = "VirtualShell")
+@JSExportTopLevel(name = "VirtualShell")
 @JSExportAll
 class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: VirtualUsersManager, val vsm: VirtualSecurityManager,
                        val context: VirtualShellContext, private var _currentFolder: VirtualFolder,
@@ -132,7 +132,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   private val history = new CommandHistory(new CommandHistoryFileStore(this))
   private val editLine = new EditLine(terminal)
 
-  var inputHandler: StringPub#Sub = _
+  var inputHandler: String => Unit = _
   private val completions = new ShellCompletions(context)
   private val runningCommands = new ListBuffer[RunStatus]()
   private var stopped = true
@@ -145,10 +145,10 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   def currentFolder: VirtualFolder = _currentFolder
 
   def run(command: String, args: String*): Either[IOError, Unit] =
-    run(false, command, args: _*)
+    run(false, command, args *)
 
   override def runInBackground(command: String, args: String*): Either[IOError, Unit] =
-    run(true, command, args: _*)
+    run(true, command, args *)
 
   def killAll(authentication: Authentication): Either[IOError, Unit] = {
     vum.getUser(authentication) match {
@@ -170,18 +170,18 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   }
 
 
-  def currentFolder_=(folder: VirtualFolder) {
+  def currentFolder_=(folder: VirtualFolder): Unit = {
     _currentFolder = folder
   }
 
-  def start() {
+  def start(): Unit = {
     prompt(true)
     startInternal(new InputHandler())
   }
 
   def startWithCommand(background: Boolean, command: String, args: String*): Unit = {
     startInternal(new InputHandler())
-    run(background, command, args: _*) match {
+    run(background, command, args *) match {
       case Left(error) =>
         terminal.add(s"Error starting with command $command ${args.mkString(",")}: ${error.message}\n")
         terminal.flush()
@@ -190,14 +190,14 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private def startInternal(inputHandler: StringPub#Sub) {
+  private def startInternal(inputHandler: String => Unit): Unit = {
     this.inputHandler = inputHandler
     terminal.onInput(inputHandler)
     stopped = false
     updateRunningCommands()
   }
 
-  def readLine(onEnter: String => Unit) {
+  def readLine(onEnter: String => Unit): Unit = {
     if (inputHandler != null) {
       terminal.removeOnInput(inputHandler)
     }
@@ -232,7 +232,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
 
   private def run(background: Boolean, command: String, args: String*) = {
     findCommand(command, currentFolder) match {
-      case Right(Some(f)) => runFile(background, f, args: _*)
+      case Right(Some(f)) => runFile(background, f, args *)
       case Right(None) => s"$command: No such file".ioErrorE
       case Left(error) => Left(error)
     }
@@ -243,7 +243,6 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     * @return true if I must show the prompt
     */
   private def runFile(background: Boolean, file: VirtualFile, args: String*): Either[IOError, Unit] = {
-    import org.enricobn.vfs.utils.Utils.RightBiasedEither
 
     if (!vsm.checkExecuteAccess(file)) {
       return "Permission denied!".ioErrorE
@@ -252,7 +251,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     val result = for {
       command <- VirtualCommandOperations.getCommand(file)
       commandInput = new CommandInput()
-      process <- command.run(this, commandInput, new CommandOutput(), args: _*)
+      process <- command.run(this, commandInput, new CommandOutput(), args *)
     } yield {
       (process, commandInput)
     }
@@ -305,12 +304,12 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
       }
     }
 
-    scheduler.run { time: Double =>
+    scheduler.run( (_: Double) =>
       updateRunningCommands()
-    }
+    )
   }
 
-  private def prompt(updateEditLine: Boolean) {
+  private def prompt(updateEditLine: Boolean): Unit = {
     val prompt = VirtualShellImpl.prompt(authentication.user, currentFolder.path)
 
     terminal.add(prompt)
@@ -321,8 +320,8 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private[VirtualShellImpl] class InputHandler extends StringPub#Sub {
-    override def notify(pub: mutable.Publisher[String], event: String) {
+  private[VirtualShellImpl] class InputHandler extends Function1[String, Unit] {
+    override def apply(event: String): Unit = {
       if (event == CR) {
         terminal.add(CRLF)
         terminal.flush()
@@ -394,17 +393,17 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
     }
   }
 
-  private def processHistory(command: String) {
+  private def processHistory(command: String): Unit = {
     editLine.replaceLine(command)
   }
 
-  private def processLine(line: String) {
+  private def processLine(line: String): Unit = {
     if (line.nonEmpty) {
 
       history.add(line).left.foreach(showError)
 
       val words = line.split(" ")
-      run(false, words.head, words.tail.toArray: _*) match {
+      run(false, words.head, words.tail.toArray *) match {
         case Left(error) =>
           terminal.add(error.message + CRLF)
           prompt(true)
@@ -416,13 +415,11 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   }
 
   private[VirtualShellImpl] class CommandInput extends ShellInput {
-    private val opened = mutable.HashMap[ShellInputDescriptor, mutable.Subscriber[String, mutable.Publisher[String]]]()
+    private val opened = mutable.HashMap[ShellInputDescriptor, String => Unit]()
 
     override def subscribe(fun: Function[String, Unit]): ShellInputDescriptor = {
-      val subscriber = new mutable.Subscriber[String, mutable.Publisher[String]] {
-        override def notify(pub: mutable.Publisher[String], event: String) {
+      val subscriber = (event : String) => {
           fun(event)
-        }
       }
       terminal.onInput(subscriber)
       val descriptor = ShellInput.newShellInputDescriptor()
@@ -443,19 +440,19 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   }
 
   private[VirtualShellImpl] class CommandOutput extends ShellOutput {
-    override def write(s: String) {
+    override def write(s: String): Unit = {
       terminal.add(s)
     }
 
-    override def flush() {
+    override def flush(): Unit = {
       terminal.flush()
     }
   }
 
-  private[VirtualShellImpl] class GetStringInputHandler(private val onEnter: String => Unit) extends StringPub#Sub {
+  private[VirtualShellImpl] class GetStringInputHandler(private val onEnter: String => Unit) extends (String => Unit) {
     private var line: String = ""
 
-    override def notify(pub: mutable.Publisher[String], event: String) {
+    override def apply(event: String): Unit = {
       if (event == CR) {
         terminal.removeOnInput(this)
 

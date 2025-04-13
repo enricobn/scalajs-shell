@@ -1,8 +1,8 @@
 package org.enricobn.shell
 
-import java.util.UUID
-
 import org.enricobn.shell.ShellInput.ShellInputDescriptor
+
+import scala.util.Random.nextInt
 
 /**
   * Created by enrico on 12/13/16.
@@ -12,7 +12,7 @@ object ShellInput {
 
   type ShellInputDescriptor = String
 
-  def newShellInputDescriptor(): ShellInputDescriptor = UUID.randomUUID().toString
+  def newShellInputDescriptor(): ShellInputDescriptor = nextInt().toString
 
 }
 
@@ -20,7 +20,7 @@ trait ShellInput {
 
   def subscribe(fun: Function[String,Unit]) : ShellInputDescriptor
 
-  def close(descriptor: ShellInputDescriptor)
+  def close(descriptor: ShellInputDescriptor): Unit
 
   def closeAll(): Unit
 

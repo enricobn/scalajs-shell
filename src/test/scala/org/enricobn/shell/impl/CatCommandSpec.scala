@@ -5,8 +5,9 @@ import org.enricobn.terminal.Terminal
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
 import org.enricobn.vfs.{Authentication, VirtualFolder}
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
@@ -14,18 +15,18 @@ import scala.language.reflectiveCalls
 /**
   * Created by enrico on 12/16/16.
   */
-class CatCommandSpec extends FlatSpec with MockFactory with Matchers {
+class CatCommandSpec extends AnyFlatSpec with MockFactory with Matchers {
 
   private def fixture = {
     val fs = InMemoryFS(
-      {VirtualUsersManagerFileImpl(_, "root").right.get},
+      {VirtualUsersManagerFileImpl(_, "root").toOption.get},
       {(_, vum) => new VirtualSecurityManagerImpl(vum)})
 
-    implicit val authentication: Authentication = fs.vum.logRoot("root").right.get
+    implicit val authentication: Authentication = fs.vum.logRoot("root").toOption.get
 
-    val _ = fs.root.mkdir("bin").right.get
-    val home = fs.root.findFolder("home").right.get.get
-    val _guest = home.mkdir("guest").right.get
+    val _ = fs.root.mkdir("bin").toOption.get
+    val home = fs.root.findFolder("home").toOption.get.get
+    val _guest = home.mkdir("guest").toOption.get
 
     new {
       val command: VirtualCommand = CatCommand
@@ -40,7 +41,7 @@ class CatCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     implicit val authentication: Authentication = f.shell.authentication
 
-    f.guestFolder.touch("file").right.get
+    f.guestFolder.touch("file").toOption.get
 
     val result = f.command.completion("cat f", f.shell)
 
@@ -52,8 +53,8 @@ class CatCommandSpec extends FlatSpec with MockFactory with Matchers {
 
     implicit val authentication: Authentication = f.shell.authentication
 
-    f.guestFolder.touch("file").right.get
-    f.guestFolder.touch("file1").right.get
+    f.guestFolder.touch("file").toOption.get
+    f.guestFolder.touch("file1").toOption.get
 
     val result = f.command.completion("cat f", f.shell)
 

@@ -1,9 +1,8 @@
 package org.enricobn.shell
 
 import org.enricobn.shell.impl.VirtualShell
-import org.enricobn.vfs.IOError._
+import org.enricobn.vfs.IOError.*
 import org.enricobn.vfs.utils.Utils
-import org.enricobn.vfs.utils.Utils.RightBiasedEither
 import org.enricobn.vfs.{Authentication, IOError, VirtualFile, VirtualFolder}
 
 object VirtualCommandOperations {

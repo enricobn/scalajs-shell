@@ -2,9 +2,8 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.VirtualShellContext
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs.IOError._
-import org.enricobn.vfs._
-import org.enricobn.vfs.utils.Utils.RightBiasedEither
+import org.enricobn.vfs.*
+import org.enricobn.vfs.IOError.*
 
 trait VirtualShell {
 
@@ -23,7 +22,7 @@ trait VirtualShell {
   def currentFolder: VirtualFolder
 
   def homeFolder: Either[IOError, VirtualFolder] =
-    VirtualPath.absolute("home", authentication.user).right.flatMap(_.toFolder(fs)(authentication))
+    VirtualPath.absolute("home", authentication.user).flatMap(_.toFolder(fs)(authentication))
 
   def run(command: String, args: String*) : Either[IOError, Unit]
 
@@ -31,9 +30,9 @@ trait VirtualShell {
 
   def killAll(authentication: Authentication): Either[IOError, Unit]
 
-  def currentFolder_=(folder: VirtualFolder)
+  def currentFolder_=(folder: VirtualFolder): Unit
 
-  def start()
+  def start(): Unit
 
   def startWithCommand(background: Boolean, command: String, args: String*): Unit
 
@@ -84,10 +83,10 @@ trait VirtualShell {
   def findCommand(command: String, currentFolder: VirtualFolder)
   : Either[IOError, Option[VirtualFile]] = {
     for {
-      p <- context.path(fs)(authentication).right
-      inCurrent <- currentFolder.findFile(command)(authentication).right
+      p <- context.path(fs)(authentication)
+      inCurrent <- currentFolder.findFile(command)(authentication)
     } yield p.map(folder => {
-      folder.findFile(command)(authentication).right.get
+      folder.findFile(command)(authentication).toOption.get
     })
       .flatMap(_.toList)
       .headOption.orElse(inCurrent)

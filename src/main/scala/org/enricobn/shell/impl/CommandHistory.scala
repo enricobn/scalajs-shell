@@ -11,25 +11,25 @@ class CommandHistory(private val store: CommandHistoryStore, private val maxSize
   private var currentLine: Option[String] = None
 
   def prev(currentLine: String): Either[IOError, Option[String]] =
-    store.length.right.flatMap { l =>
+    store.length.flatMap { l =>
       if (current == l) {
         this.currentLine = Some(currentLine)
       }
       val next = current - 1
       if (next >= 0) {
         current = next
-        store(next).right.map(Some(_))
+        store(next).map(Some(_))
       } else {
         Right(None)
       }
     }
 
   def succ() : Either[IOError, Option[String]] =
-    store.length.right.flatMap { l =>
+    store.length.flatMap { l =>
       val next = current + 1
       if (next < l) {
         current = next
-        store(next).right.map(Some(_))
+        store(next).map(Some(_))
       } else {
         current = l
         Right(currentLine)
@@ -37,11 +37,11 @@ class CommandHistory(private val store: CommandHistoryStore, private val maxSize
     }
 
   def add(command: String) : Either[IOError, Unit] = {
-    store.lastOption.right.flatMap { lo =>
+    store.lastOption.flatMap { lo =>
       val addCommandE =
         if (!lo.contains(command)) {
-          store.add(command).right.flatMap { _ =>
-            store.length.right.flatMap { l =>
+          store.add(command).flatMap { _ =>
+            store.length.flatMap { l =>
               if (l > maxSize) {
                 store.removeHead
               } else {
@@ -53,8 +53,8 @@ class CommandHistory(private val store: CommandHistoryStore, private val maxSize
           Right(())
         }
 
-      addCommandE.right.flatMap { _ =>
-        store.length.right.map { l =>
+      addCommandE.flatMap { _ =>
+        store.length.map { l =>
           current = l
           currentLine = None
           ()

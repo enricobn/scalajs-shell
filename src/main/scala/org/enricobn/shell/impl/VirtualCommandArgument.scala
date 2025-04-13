@@ -1,8 +1,7 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell._
-import org.enricobn.vfs._
-import org.enricobn.vfs.utils.Utils.RightBiasedEither
+import org.enricobn.shell.*
+import org.enricobn.vfs.*
 
 import scala.collection.mutable.ListBuffer
 
@@ -40,12 +39,10 @@ private object VirtualArgumentCommon {
             }
             folders
               .map(folder => Completion(partialPath.relativePath + folder.name + "/", folder.name))
-              .toSeq
         }
-      case CompletePath(folder, relativePath) => {
+      case CompletePath(folder, relativePath) =>
         //Seq(Completion(relativePath + "/" +  folder.name + "/", folder.name))
         Seq(Completion(value, relativePath))
-      }
     }
   }
 
@@ -69,7 +66,7 @@ private object VirtualArgumentCommon {
             case Right(f) => f
           }
 
-        val all = (files.map(_.name) ++ folders.map(_.name + VirtualFS.pathSeparator)).toSeq
+        val all = files.map(_.name) ++ folders.map(_.name + VirtualFS.pathSeparator)
 
         (if (remaining.isDefined)
           all.filter(_.startsWith(remaining.get))
@@ -194,7 +191,7 @@ case class StringArgument(override val name: String, override val required: Bool
 
 }
 
-class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
+class VirtualCommandArguments(args: VirtualCommandArgument[?]*) {
 
   private var optional = false
   args.foreach(arg => {
@@ -256,12 +253,12 @@ class VirtualCommandArguments(args: VirtualCommandArgument[_]*) {
       .zip(args)
 
     for (pair <- zipped) {
-      pair._2.parse(shell, pair._1, result) match {
+      pair._2.parse(shell, pair._1, result.toSeq) match {
         case Left(message) => return Left(message)
         case Right(value) => result += value
       }
     }
-    Right(result)
+    Right(result.toSeq)
   }
 
 }

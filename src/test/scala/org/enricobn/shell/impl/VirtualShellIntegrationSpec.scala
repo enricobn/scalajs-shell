@@ -1,12 +1,14 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell._
+import org.enricobn.shell.*
 import org.enricobn.terminal.Terminal
-import org.enricobn.vfs._
+import org.enricobn.vfs.*
 import org.enricobn.vfs.impl.{VirtualSecurityManagerImpl, VirtualUsersManagerFileImpl}
 import org.enricobn.vfs.inmemory.InMemoryFS
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.scalatest._
+import org.scalatest.*
+import org.scalatest.flatspec.AnyFlatSpec
 
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
@@ -14,7 +16,7 @@ import scala.language.reflectiveCalls
 /**
   * Created by enrico on 12/12/16.
   */
-class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matchers {
+class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matchers {
   private val rootPassword = "root"
   private var terminal: Terminal = _
   private var scheduler: FakeScheduler = _
@@ -28,21 +30,19 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   private var context: VirtualShellContext = _
   private var guestHome: VirtualFolder = _
 
-  import org.enricobn.vfs.utils.Utils.RightBiasedEither
-
   terminal = mock[Terminal]
   scheduler = new FakeScheduler()
   context = mock[VirtualShellContext]
 
   val _fs: InMemoryFS = InMemoryFS(
     {
-      VirtualUsersManagerFileImpl(_, rootPassword).right.get
+      VirtualUsersManagerFileImpl(_, rootPassword).toOption.get
     },
     { (_, vum) => new VirtualSecurityManagerImpl(vum) })
 
-  fs = UnixLikeInMemoryFS(_fs, rootPassword).right.get
+  fs = UnixLikeInMemoryFS(_fs, rootPassword).toOption.get
 
-  implicit val _rootAuthentication: Authentication = fs.vum.logRoot(rootPassword).right.get
+  implicit val _rootAuthentication: Authentication = fs.vum.logRoot(rootPassword).toOption.get
 
   private val init = for {
     _ <- fs.vum.addUser("guest", "guest", "guest")
@@ -61,7 +61,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     _ <- VirtualCommandOperations.createCommandFiles(fs.bin, LsCommand, CatCommand, CdCommand)
 
-    _ = (terminal.add _).expects(where { message: String => message.contains("/home/guest") })
+    _ = (terminal.add _).expects(where { (message: String) => message.contains("/home/guest") })
     _ = (terminal.flush _).expects().anyNumberOfTimes()
     _ = (terminal.onInput _).expects(*).anyNumberOfTimes()
     _ = (terminal.removeOnInputs _).expects().anyNumberOfTimes()
@@ -94,14 +94,14 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
   "ls" should "show text.txt" in {
     (terminal.add _).expects(where {
-      message: String => message.contains(".profile")
+      (message: String) => message.contains(".profile")
     })
 
     (terminal.add _).expects(where {
-      message: String => message.contains("text.txt") && message.contains("rw- rw- rw-")
+      (message: String) => message.contains("text.txt") && message.contains("rw- rw- rw-")
     })
 
-    TestUtils.expectPrompt(terminal)
+    expectPrompt(terminal)
 
     shell.run("ls")
   }
@@ -125,33 +125,33 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
   "cd" should "show bin, home and usr" in {
     (terminal.add _).expects(where {
-      message: String => message.contains("bin") && message.contains("rwx rwx r-x")
+      (message: String) => message.contains("bin") && message.contains("rwx rwx r-x")
     })
 
     (terminal.add _).expects(where {
-      message: String => message.contains("etc") && message.contains("rwx rwx r-x")
+      (message: String) => message.contains("etc") && message.contains("rwx rwx r-x")
     })
 
     (terminal.add _).expects(where {
-      message: String => message.contains("home") && message.contains("rwx rwx r-x")
+      (message: String) => message.contains("home") && message.contains("rwx rwx r-x")
     })
 
     (terminal.add _).expects(where {
-      message: String => message.contains("usr") && message.contains("rwx rwx r-x")
+      (message: String) => message.contains("usr") && message.contains("rwx rwx r-x")
     })
 
     (terminal.add _).expects(where {
-      message: String => message.contains("rootFile") && message.contains("rw- rw- r--")
+      (message: String) => message.contains("rootFile") && message.contains("rw- rw- r--")
     })
 
     (terminal.add _).expects(where {
-      message: String => message.contains("var") && message.contains("rwx rwx r-x")
+      (message: String) => message.contains("var") && message.contains("rwx rwx r-x")
     })
 
-    TestUtils.expectPrompt(terminal)
+    expectPrompt(terminal)
     shell.run("cd", "/")
 
-    TestUtils.expectPrompt(terminal)
+    expectPrompt(terminal)
     shell.run("ls")
   }
 
@@ -165,7 +165,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "running text.txt" should "return an error" in {
     textFile.setExecutable(rootAuthentication)
 
-    TestUtils.expectPrompt(terminal)
+    expectPrompt(terminal)
 
     shell.run("cd", "/home/guest")
 
@@ -178,13 +178,13 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "toFolder of root" should "be root" in {
     val folder = shell.toFolder("/")
 
-    assert(folder.right.get == fs.root)
+    assert(folder.toOption.get == fs.root)
   }
 
   "toFolder of absolute path" should "work" in {
     val folder = shell.toFolder("/usr/bin")
 
-    assert(folder.right.get == fs.usrBin)
+    assert(folder.toOption.get == fs.usrBin)
   }
 
   "toFolder of relative path" should "work" in {
@@ -192,7 +192,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val folder = shell.toFolder("bin")
 
-    assert(folder.right.get == fs.usrBin)
+    assert(folder.toOption.get == fs.usrBin)
   }
 
   "toFolder of parent path" should "work" in {
@@ -200,7 +200,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val folder = shell.toFolder("../bin")
 
-    assert(folder.right.get == fs.bin)
+    assert(folder.toOption.get == fs.bin)
   }
 
   "toFolder of self" should "work" in {
@@ -208,7 +208,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val folder = shell.toFolder("./bin")
 
-    assert(folder.right.get == fs.usrBin)
+    assert(folder.toOption.get == fs.usrBin)
   }
 
   "toFolder of not existent folder" should "return IOError" in {
@@ -220,13 +220,13 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   "toFile of absolute path" should "work" in {
     val file = shell.toFile("/usr/bin/binFile")
 
-    assert(binFile == file.right.get)
+    assert(binFile == file.toOption.get)
   }
 
   "toFile of root file" should "work" in {
     val file = shell.toFile("/rootFile")
 
-    assert(rootFile == file.right.get)
+    assert(rootFile == file.toOption.get)
   }
 
   "toFile of relative path" should "work" in {
@@ -234,7 +234,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
 
     val file = shell.toFile("../usrFile")
 
-    assert(usrFile == file.right.get)
+    assert(usrFile == file.toOption.get)
   }
 
   "findFile of parent of root" should "return IOError" in {
@@ -292,7 +292,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   }
 
   "int" should "show prompt" in {
-    TestUtils.expectPrompt(terminal)
+    expectPrompt(terminal)
     shell.run("int")
   }
 
@@ -321,7 +321,7 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
   }
 
   "completion of i" should "return 'int '" in {
-    TestUtils.expectPrompt(terminal)
+    expectPrompt(terminal)
 
     /*
     Here as an example on how to do it...
@@ -335,18 +335,18 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     terminalExpectCodePoints(27, 91, 48, 68)
     terminalExpectCodePoints(27, 91, 49, 68)
     terminalExpectCodePoints(27, 91, 75)
-    (terminal.add _).expects(where { message: String =>  message == "int " })
+    (terminal.add _).expects(where { (message: String) =>  message == "int " })
 
     (terminal.flush : () => Unit).expects().onCall(() => println("flush")).anyNumberOfTimes()
 
     shell.run("cd", "/home/guest")
 
-    shell.asInstanceOf[VirtualShellImpl].inputHandler.notify(null, "i")
-    shell.asInstanceOf[VirtualShellImpl].inputHandler.notify(null, Terminal.TAB)
+    shell.asInstanceOf[VirtualShellImpl].inputHandler.apply("i")
+    shell.asInstanceOf[VirtualShellImpl].inputHandler.apply(Terminal.TAB)
   }
 
   def terminalExpectCodePoints(codePoints: Int*): Unit = {
-    (terminal.add _).expects(where { message: String => {
+    (terminal.add _).expects(where { (message: String) => {
         codePoints == message.map(c => c.toInt)
     } })
   }
@@ -390,6 +390,14 @@ class VirtualShellIntegrationSpec extends FlatSpec with MockFactory with Matcher
     result match {
       case Left(error) => assert(error.message == message)
       case _ => fail("Should return an error.")
+    }
+  }
+
+  private def expectPrompt(terminal : Terminal,  prompt : Boolean = true): Unit = {
+    if (prompt) {
+      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) })
+    } else {
+      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) }).never()
     }
   }
 }
