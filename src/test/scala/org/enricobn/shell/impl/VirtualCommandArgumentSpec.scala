@@ -9,11 +9,11 @@ import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 
-import scala.language.reflectiveCalls
+import scala.reflect.Selectable.reflectiveSelectable
 
 class VirtualCommandArgumentSpec extends AnyFlatSpec with MockFactory with Matchers {
 
-  private def fixture = {
+  private def fixture: Object {val rootFile: VirtualFile; val bin: VirtualFolder; val binFile: VirtualFile; val fs: InMemoryFS; val shell: VirtualShellImpl; val usrFile: VirtualFile; val usr: VirtualFolder; val usersManager: VirtualUsersManager} = {
     val rootPassword = "rootPassword"
     val _fs = InMemoryFS(
       {VirtualUsersManagerFileImpl(_, rootPassword).toOption.get},
@@ -60,7 +60,7 @@ class VirtualCommandArgumentSpec extends AnyFlatSpec with MockFactory with Match
     assert(parsedArguments.toOption.get == f.fs.root)
   }
 
-  "completion of not existent argument" should "return an empty list" in {
+  "completion of not existent argument" should "returns an empty list" in {
     val f = fixture
 
     val sut = new VirtualCommandArguments(FileArgument("file", required = true))

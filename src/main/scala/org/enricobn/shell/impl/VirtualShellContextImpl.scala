@@ -2,13 +2,15 @@ package org.enricobn.shell.impl
 
 import org.enricobn.shell.{VirtualShellContext, VirtualShellProfile, VirtualShellProfileRead}
 
+import scala.compiletime.uninitialized
+
 /**
   * Created by enrico on 12/23/16.
   */
 class VirtualShellContextImpl() extends VirtualShellContext {
-  private var globalProfile : VirtualShellProfile = _
-  private var userProfile : VirtualShellProfile = _
-  private var _profile : VirtualShellProfileRead = _
+  private var globalProfile : VirtualShellProfile = uninitialized
+  private var userProfile : VirtualShellProfile = uninitialized
+  private var _profile : VirtualShellProfileRead = uninitialized
 
   def setGlobalProfile(profile: VirtualShellProfile): Unit = {
     globalProfile = profile

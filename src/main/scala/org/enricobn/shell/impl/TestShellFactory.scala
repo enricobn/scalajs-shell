@@ -18,7 +18,7 @@ import scala.language.reflectiveCalls
   */
 @JSExportTopLevel("TestShellFactory")
 object TestShellFactory {
-
+ 
   def create(terminal: Terminal) : VirtualShell = {
     val _fs = InMemoryFS(
       {VirtualUsersManagerFileImpl(_, "root").toOption.get},

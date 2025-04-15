@@ -4,6 +4,8 @@ import org.enricobn.shell.*
 import org.enricobn.vfs.*
 
 import scala.collection.mutable.ListBuffer
+import scala.util.boundary.{Break, break}
+import scala.util.{Failure, Success, Try, boundary}
 
 /**
   * Created by enrico on 12/22/16.
@@ -117,10 +119,11 @@ case class NewFolderArgument(override val name: String, override val required: B
 
     (for {
       path <- VirtualPath.of(value)
-      parentPath <- if (path.parentOrError.isLeft)
-        Right(shell.currentFolder)
-      else
-        path.parentOrError
+      parentPath <-
+        if (path.parentOrError.isLeft)
+          VirtualPath.of(shell.currentFolder)
+        else
+          path.parentOrError
       parent <- shell.toFolder(parentPath.toString)
     } yield (parent, path.name)).left.map(_.message)
   }
@@ -138,7 +141,7 @@ case class NewFileArgument(override val name: String, override val required: Boo
     (for {
       path <- VirtualPath.of(value)
       parentPath <- if (path.parentOrError.isLeft)
-        Right(shell.currentFolder)
+        VirtualPath.of(shell.currentFolder)
       else
         path.parentOrError
       parent <- shell.toFolder(parentPath.toString)
@@ -249,16 +252,18 @@ class VirtualCommandArguments(args: VirtualCommandArgument[?]*) {
 
   private def parseInternal(shell: VirtualShell, lineArgs: Seq[String]): Either[String, Seq[Any]] = {
     val result = new ListBuffer[Any]
-    val zipped = lineArgs
-      .zip(args)
+    val zipped = args
+      .zip(lineArgs)
 
-    for (pair <- zipped) {
-      pair._2.parse(shell, pair._1, result.toSeq) match {
-        case Left(message) => return Left(message)
-        case Right(value) => result += value
+    boundary:
+      for ((arg, value) <- zipped) {
+        arg.parse(shell, value, result.toSeq) match {
+          case Left(message) =>
+            break(Left(message))
+          case Right(value) => result += value
+        }
       }
-    }
-    Right(result.toSeq)
+      Right(result.toSeq)
   }
 
 }

@@ -26,19 +26,19 @@ class TestShellFactorySpec extends AnyFlatSpec with MockFactory with Matchers {
     val terminal = mock[Terminal]
     val shell = TestShellFactory.create(terminal)
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains(".profile")
     })
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("text.txt")
     })
 
-    (terminal.removeOnInputs _).expects().anyNumberOfTimes()
+    (() => terminal.removeOnInputs()).expects().anyNumberOfTimes()
 
-    (terminal.flush _).expects().anyNumberOfTimes()
+    (() => terminal.flush()).expects().anyNumberOfTimes()
 
-    (terminal.onInput _).expects(*).anyNumberOfTimes()
+    terminal.onInput.expects(*).anyNumberOfTimes()
 
     expectPrompt(terminal)
 
@@ -48,9 +48,9 @@ class TestShellFactorySpec extends AnyFlatSpec with MockFactory with Matchers {
 
   private def expectPrompt(terminal : Terminal,  prompt : Boolean = true): Unit = {
     if (prompt) {
-      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) })
+      terminal.add.expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) })
     } else {
-      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) }).never()
+      terminal.add.expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) }).never()
     }
   }
 

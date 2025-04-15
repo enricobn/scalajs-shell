@@ -9,7 +9,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 
 // to access members of structural types (new {}) without warnings
-import scala.language.reflectiveCalls
+import scala.reflect.Selectable.reflectiveSelectable
 
 /**
   * Created by enrico on 12/15/16.
@@ -86,7 +86,7 @@ class ShellCompletionsSpec extends AnyFlatSpec with MockFactory with Matchers {
     val f = fixture
     val catCommand = stub[VirtualCommand]
 
-    (catCommand.completion _).when("cat ", *).returns(Seq(Completion("hello", "hello"), Completion("world", "world")))
+    catCommand.completion.when("cat ", *).returns(Seq(Completion("hello", "hello"), Completion("world", "world")))
     val cat = stubCommandFile(f.shell, "cat", catCommand)
 
     stubPath(f.context, Seq(cat))

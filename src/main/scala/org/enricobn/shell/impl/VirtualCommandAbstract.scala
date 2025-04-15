@@ -1,14 +1,14 @@
 package org.enricobn.shell.impl
 
-import org.enricobn.shell._
+import org.enricobn.shell.*
 import org.enricobn.vfs.{Authentication, IOError}
 
-abstract class VirtualCommandAbstract(val name: String, val virtualArguments: VirtualCommandArgument[_]*) extends VirtualCommand {
+abstract class VirtualCommandAbstract(val name: String, val virtualArguments: VirtualCommandArgument[?]*) extends VirtualCommand {
 
-  private val arguments = new VirtualCommandArguments(virtualArguments: _*)
+  private val arguments = new VirtualCommandArguments(virtualArguments*)
 
   override def run(shell: VirtualShell, shellInput: ShellInput, shellOutput: ShellOutput, args: String*): Either[IOError, VirtualProcess] = {
-    arguments.parse(shell, name, args: _*) match {
+    arguments.parse(shell, name, args*) match {
       case Left(message) => Left(IOError(name + ": " + message))
       case Right(values) =>
         runParsed(shell, shellInput, shellOutput, values)(shell.authentication)

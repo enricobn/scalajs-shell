@@ -9,11 +9,11 @@ import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 
-import scala.language.reflectiveCalls
+import scala.reflect.Selectable.reflectiveSelectable
 
 class CompletionPathSpec extends AnyFlatSpec with MockFactory with Matchers {
 
-  private def fixture = {
+  private def fixture: Object {val command: VirtualCommand; val guestFolder: VirtualFolder; val shell: VirtualShellImpl} = {
     val fs = InMemoryFS(
       {VirtualUsersManagerFileImpl(_, "root").toOption.get},
       {(_, vum) => new VirtualSecurityManagerImpl(vum)})

@@ -10,14 +10,14 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 
 // to access members of structural types (new {}) without warnings
-import scala.language.reflectiveCalls
+import scala.reflect.Selectable.reflectiveSelectable
 
 /**
   * Created by enrico on 12/16/16.
   */
 class CatCommandSpec extends AnyFlatSpec with MockFactory with Matchers {
 
-  private def fixture = {
+  private def fixture: Object {val command: VirtualCommand; val guestFolder: VirtualFolder; val shell: VirtualShellImpl} = {
     val fs = InMemoryFS(
       {VirtualUsersManagerFileImpl(_, "root").toOption.get},
       {(_, vum) => new VirtualSecurityManagerImpl(vum)})

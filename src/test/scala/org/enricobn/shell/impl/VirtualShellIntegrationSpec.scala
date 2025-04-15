@@ -10,6 +10,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.*
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.compiletime.uninitialized
+
 // to access members of structural types (new {}) without warnings
 import scala.language.reflectiveCalls
 
@@ -18,17 +20,17 @@ import scala.language.reflectiveCalls
   */
 class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matchers {
   private val rootPassword = "root"
-  private var terminal: Terminal = _
-  private var scheduler: FakeScheduler = _
-  private var fs: UnixLikeInMemoryFS = _
-  private var shell: VirtualShell = _
-  private var textFile: VirtualFile = _
-  private var rootAuthentication: Authentication = _
-  private var binFile: VirtualFile = _
-  private var rootFile: VirtualFile = _
-  private var usrFile: VirtualFile = _
-  private var context: VirtualShellContext = _
-  private var guestHome: VirtualFolder = _
+  private var terminal: Terminal = uninitialized
+  private var scheduler: FakeScheduler = uninitialized
+  private var fs: UnixLikeInMemoryFS = uninitialized
+  private var shell: VirtualShell = uninitialized
+  private var textFile: VirtualFile = uninitialized
+  private var rootAuthentication: Authentication = uninitialized
+  private var binFile: VirtualFile = uninitialized
+  private var rootFile: VirtualFile = uninitialized
+  private var usrFile: VirtualFile = uninitialized
+  private var context: VirtualShellContext = uninitialized
+  private var guestHome: VirtualFolder = uninitialized
 
   terminal = mock[Terminal]
   scheduler = new FakeScheduler()
@@ -61,11 +63,11 @@ class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matc
 
     _ <- VirtualCommandOperations.createCommandFiles(fs.bin, LsCommand, CatCommand, CdCommand)
 
-    _ = (terminal.add _).expects(where { (message: String) => message.contains("/home/guest") })
-    _ = (terminal.flush _).expects().anyNumberOfTimes()
-    _ = (terminal.onInput _).expects(*).anyNumberOfTimes()
-    _ = (terminal.removeOnInputs _).expects().anyNumberOfTimes()
-    _ = (terminal.removeOnInput _).expects(*).anyNumberOfTimes()
+    _ = terminal.add.expects(where { (message: String) => message.contains("/home/guest") })
+    _ = (() => terminal.flush()).expects().anyNumberOfTimes()
+    _ = terminal.onInput.expects(*).anyNumberOfTimes()
+    _ = (() => terminal.removeOnInputs()).expects().anyNumberOfTimes()
+    _ = terminal.removeOnInput.expects(*).anyNumberOfTimes()
 
     _ = virtualShell.start()
   } yield {
@@ -93,11 +95,11 @@ class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matc
   }
 
   "ls" should "show text.txt" in {
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains(".profile")
     })
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("text.txt") && message.contains("rw- rw- rw-")
     })
 
@@ -124,27 +126,27 @@ class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matc
    */
 
   "cd" should "show bin, home and usr" in {
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("bin") && message.contains("rwx rwx r-x")
     })
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("etc") && message.contains("rwx rwx r-x")
     })
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("home") && message.contains("rwx rwx r-x")
     })
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("usr") && message.contains("rwx rwx r-x")
     })
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("rootFile") && message.contains("rw- rw- r--")
     })
 
-    (terminal.add _).expects(where {
+    terminal.add.expects(where {
       (message: String) => message.contains("var") && message.contains("rwx rwx r-x")
     })
 
@@ -335,7 +337,7 @@ class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matc
     terminalExpectCodePoints(27, 91, 48, 68)
     terminalExpectCodePoints(27, 91, 49, 68)
     terminalExpectCodePoints(27, 91, 75)
-    (terminal.add _).expects(where { (message: String) =>  message == "int " })
+    terminal.add.expects(where { (message: String) =>  message == "int " })
 
     (terminal.flush : () => Unit).expects().onCall(() => println("flush")).anyNumberOfTimes()
 
@@ -346,7 +348,7 @@ class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matc
   }
 
   def terminalExpectCodePoints(codePoints: Int*): Unit = {
-    (terminal.add _).expects(where { (message: String) => {
+    terminal.add.expects(where { (message: String) => {
         codePoints == message.map(c => c.toInt)
     } })
   }
@@ -395,9 +397,9 @@ class VirtualShellIntegrationSpec extends AnyFlatSpec with MockFactory with Matc
 
   private def expectPrompt(terminal : Terminal,  prompt : Boolean = true): Unit = {
     if (prompt) {
-      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) })
+      terminal.add.expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) })
     } else {
-      (terminal.add _).expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) }).never()
+      terminal.add.expects(where { (message: String) => message.contains(VirtualShellImpl.formatUserPrompt("guest")) }).never()
     }
   }
 }

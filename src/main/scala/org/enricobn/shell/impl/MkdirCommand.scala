@@ -4,6 +4,7 @@ import org.enricobn.shell.*
 import org.enricobn.vfs.IOError.*
 import org.enricobn.vfs.{Authentication, IOError, VirtualFolder}
 
+import scala.reflect.ClassTag
 import scala.scalajs.js.annotation.JSExportTopLevel
 
 private object MkdirCommandArguments {

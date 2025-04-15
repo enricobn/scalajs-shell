@@ -11,6 +11,7 @@ import org.scalajs.dom
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.compiletime.uninitialized
 import scala.language.implicitConversions
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 import scala.util.Random.nextInt
@@ -132,7 +133,7 @@ class VirtualShellImpl(val fs: VirtualFS, val terminal: Terminal, val vum: Virtu
   private val history = new CommandHistory(new CommandHistoryFileStore(this))
   private val editLine = new EditLine(terminal)
 
-  var inputHandler: String => Unit = _
+  var inputHandler: String => Unit = uninitialized
   private val completions = new ShellCompletions(context)
   private val runningCommands = new ListBuffer[RunStatus]()
   private var stopped = true
